@@ -1,3 +1,3 @@
 module.exports = {
-    createPatch = require('./createPatch')
+    createPatch: require('./createPatch')
 }
