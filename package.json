@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:alfateam/node-cls.git"
+    "url": "git@github.com:alfateam/rdb-client.git"
   },
   "homepage": "https://github.com/alfateam/node-cls/blob/master/README.md",
   "dependencies": {
