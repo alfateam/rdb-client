@@ -40,4 +40,4 @@ module.exports = function createPatch(original, dto) {
 		}
 		return object;
 	}
-}
+};
