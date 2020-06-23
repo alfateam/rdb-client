@@ -8,10 +8,12 @@ function rdbClient() {
 	c.update = update;
 	c.delete = _delete;
 	c.proxify = proxify;
+	// c.save = save;
 	let originalJSON = new WeakMap();
 
 	function proxify(itemOrArray) {
-		if (Array.isArray(itemOrArray)) {
+		if (Array.isArray(itemOrArray))
+		{
 			let result = [];
 			for (let i = 0; i < itemOrArray.length; i++) {
 				let item = itemOrArray[i];
@@ -20,11 +22,21 @@ function rdbClient() {
 			}
 			return result;
 		}
-		else {
-			let proxy = new Proxy(itemOrArray, handler);
-			return proxy;
-		}
+		else
+			return new Proxy(itemOrArray, handler);
 	}
+
+	// let arrayHandler = {
+	// 	get(target, property, receiver) {
+	// 		const value = Reflect.get(target, property, receiver);
+	// 		if (typeof value === 'object')
+	// 			return new Proxy(value, handler);
+	// 		return value;
+	// 	},
+	// 	set(target, property, value) {
+	// 		return Reflect.set(target, property, value);
+	// 	}
+	// };
 
 	let handler = {
 		set: function(obj, prop, value, receiver) {
@@ -61,6 +73,10 @@ function rdbClient() {
 		await saveFn(patch);
 		return;
 	}
+
+	// async function save(rows, saveFn) {
+
+	// }
 
 	return c;
 }
