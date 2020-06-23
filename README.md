@@ -9,5 +9,5 @@ A browser side client for [rdb](https://npmjs.org/package/rdb). For now it can c
 
 ```js
 var client = require('rdb-client');
-client.createPatch({"id": "123", name: 'Chris'}, {"id": "123", nanme: 'Chris Brown', "interests": ["skiiing", "hiking"]});
+client.createPatch({"id": "123", name: 'Chris'}, {"id": "123", name: 'Chris Brown', "interests": ["skiiing", "hiking"]});
 ```
