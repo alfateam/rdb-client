@@ -26,6 +26,7 @@
   },
   "homepage": "https://github.com/alfateam/node-cls/blob/master/README.md",
   "dependencies": {
+    "on-change": "^2.0.1",
     "rfc6902": "^3.0.4"
   },
   "devDependencies": {
