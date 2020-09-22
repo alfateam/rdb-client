@@ -8,15 +8,18 @@ module.exports = function createPatch(original, dto) {
 	return changes;
 
 	function addOldValue(change) {
-		if (change.op !== 'replace')
+		if (change.op === 'remove' || change.op === 'replace') {
+			let splitPath = change.path.split('/');
+			splitPath.shift();
+			change.oldValue = splitPath.reduce(extract, clonedOriginal);
+		}
+		else
 			return change;
 
 		function extract(obj, element) {
 			return obj[element];
 		}
-		let splitPath = change.path.split('/');
-		splitPath.shift();
-		change.oldValue = splitPath.reduce(extract, clonedOriginal);
+
 		return change;
 	}
 

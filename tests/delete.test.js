@@ -11,6 +11,6 @@ test('delete', async (done) => {
 	expect(updatedReturned).toBe(undefined);
 	expect(updatedReturned).toEqual(undefined);
 	expect(updatedReturned).toEqual(undefined);
-	expect(updatePatch).toEqual([{'op': 'remove', 'path': '/5'}]);
+	expect(updatePatch).toEqual([{'op': 'remove', 'path': '/5', 'oldValue': {'id': 5, 'name': 'a'}}]);
 	done();
 });

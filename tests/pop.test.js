@@ -15,6 +15,6 @@ test('insert', async (done) => {
 	});
 	expect(returned).toEqual([]);
 	expect(rows).toEqual([]);
-	expect(deletePatch).toEqual([{'op': 'remove', 'path': '/6'}]);
+	expect(deletePatch).toEqual([{'op': 'remove', 'path': '/6', 'oldValue': {id: 6, name: 'Roger'}}]);
 	done();
 });

@@ -28,6 +28,6 @@ test('insert', async (done) => {
 	expect(c).toEqual(cFromServer);
 	expect(patches[0]).toEqual([{'op': 'add', 'path': '/7', 'value': {'id': 7, 'name': 'James'}}]);
 	expect(patches[1]).toEqual([{'oldValue': 'To be updated', 'op': 'replace', 'path': '/8/name', 'value': 'Updated name'}]);
-	expect(patches[2]).toEqual([{'op': 'remove', 'path': '/6'}]);
+	expect(patches[2]).toEqual([{'op': 'remove', 'path': '/6', 'oldValue': {'id': 6, 'name': 'Roger'}}]);
 	done();
 });
