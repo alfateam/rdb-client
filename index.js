@@ -10,6 +10,7 @@ function rdbClient() {
 	c.delete = _delete;
 	c.proxify = proxify;
 	c.save = save;
+	c.table = table;
 	let originalJSON = new WeakMap();
 	let insertDeleteCount = new WeakMap();
 	let previousArray = new WeakMap();
@@ -145,6 +146,55 @@ function rdbClient() {
 
 	}
 
+	function table() {
+		let c = {
+			getManyDto: true,
+		};
+
+
+		let handler = {
+			get(_target, property,) {
+				if (property in c)
+					return Reflect.get(...arguments);
+				else
+					return column(property);
+			}
+
+		};
+		return new Proxy(c, handler);
+	}
+
+	function column(path, ...previous) {
+		function c() {
+			let args = previous.concat(Array.prototype.slice.call(arguments));
+			let result = {path, args};
+			let handler = {
+				get(_target, property) {
+					if (property === 'toJSON')
+						return result.toJSON;
+					if (property in result)
+						return Reflect.get(...arguments);
+					else
+						return column(property, result);
+
+				}
+			};
+			return new Proxy(result, handler);
+		}
+		let handler = {
+			get(_target, property) {
+				if (property === 'toJSON')
+					return Reflect.get(...arguments);
+				else if (property in c)
+					return Reflect.get(...arguments);
+				else
+					return column(path + '.' + property);
+			}
+
+		};
+		return new Proxy(c, handler);
+
+	}
 	return c;
 }
 
