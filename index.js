@@ -11,6 +11,14 @@ function rdbClient() {
 	c.proxify = proxify;
 	c.save = save;
 	c.table = table;
+	c.or = column('or');
+	c.and = column('and');
+	c.not = column('not');
+	c.filter = {
+		or: c.or,
+		and: c.and,
+		not: c.not,
+	};
 	let originalJSON = new WeakMap();
 	let insertDeleteCount = new WeakMap();
 	let previousArray = new WeakMap();
@@ -145,6 +153,7 @@ function rdbClient() {
 		return rows;
 
 	}
+
 
 	function table() {
 		let c = {
