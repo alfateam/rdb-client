@@ -155,11 +155,33 @@ function rdbClient() {
 	}
 
 
-	function table() {
+	function table(url) {
 		let c = {
-			getManyDto: true,
+			getManyDto,
 		};
 
+		async function getManyDto(filter, strategy) {
+			let body = JSON.stringify({
+				filter, strategy
+			});
+			// eslint-disable-next-line no-undef
+			var headers = new Headers();
+			headers.append('Content-Type', 'application/json');
+			// eslint-disable-next-line no-undef
+			let request = new Request(`${url}`, {method: 'POST', headers, body});
+			// eslint-disable-next-line no-undef
+			let response = await fetch(request);
+			if (response.status === 200) {
+				return response.json();
+			}
+			else {
+				let msg = response.json && await response.json() || `Status ${response.status} from server`;
+				let e = new Error(msg);
+				// @ts-ignore
+				e.status = response.status;
+				throw e;
+			}
+		}
 
 		let handler = {
 			get(_target, property,) {
