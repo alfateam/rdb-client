@@ -29,7 +29,6 @@
     "rfc6902": "^3.0.4"
   },
   "devDependencies": {
-    "a": "^2.1.2",
     "coveralls": "^3.0.6",
     "eslint": "^6.6.0",
     "eslint-plugin-jest": "^23.0.4",
