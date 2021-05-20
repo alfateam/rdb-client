@@ -1,4 +1,10 @@
+const onChange = require('on-change');
+const util = require('util');
 let createPatch = require('./createPatch');
+let _originalJSON = new WeakMap();
+let rootMap = new WeakMap();
+let _insertDeleteCount = new WeakMap();
+let i = 0;
 
 function rdbClient() {
 	let isSaving;
@@ -8,7 +14,7 @@ function rdbClient() {
 	c.insert = insert;
 	c.update = update;
 	c.delete = _delete;
-	c.proxify = proxify;
+	c.proxify = proxify2;
 	c.save = save;
 	c.table = table;
 	c.or = column('or');
@@ -44,6 +50,70 @@ function rdbClient() {
 			return p;
 		}
 	}
+
+	function proxify2(itemOrArray) {
+		if (Array.isArray(itemOrArray))
+			return proxifyArray(itemOrArray);
+		else
+			return proxifyRow(itemOrArray);
+	}
+
+	function proxifyArray(array) {
+		let arrayProxy =  onChange(array, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate: onValidate});
+		rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
+		arrayProxy.save = saveArray.bind(null, array);
+		return arrayProxy;
+
+		function onValidate(path) {
+			if (path.length > 0) {
+				let {jsonMap} = rootMap.get(array);
+				if (!jsonMap.has(array[path[0]]))
+					jsonMap.set(array[path[0]], JSON.stringify(array[path[0]]));
+			}
+			return true;
+		}
+	}
+
+	function saveArray(array) {
+		let {original, jsonMap} = rootMap.get(array);
+		let {added, removed, changed} = difference(original, new Set(array), jsonMap);
+		let insertPatch = createPatch([], added);
+		let deletePatch = createPatch(removed, []);
+		let updatePatch = createPatch(changed.map(x => JSON.parse(jsonMap.get(x))), changed);
+		let patch = [...insertPatch, ...updatePatch, ...deletePatch];
+		console.log('patch ' + util.inspect(patch, { depth: 10 }));
+		//todo
+		//save on server
+		//refresh changed and inserted with data from server with original strategy
+		//rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
+	}
+
+	function difference(setA, setB, jsonMap) {
+		let removed = new Set(setA);
+		let added = [];
+		let changed = [];
+		for (let elem of setB) {
+			if (!setA.has(elem))
+				added.push(elem);
+			else {
+				removed.delete(elem);
+				if (jsonMap.get(elem))
+					changed.push(elem);
+			}
+		}
+
+
+		console.log('added ' + util.inspect(added, { depth: 10 }));
+		console.log('removed ' + util.inspect(removed, { depth: 10 }));
+		console.log('changed ' + util.inspect(changed, { depth: 10 }));
+
+		return {added, removed: Array.from(removed), changed};
+	}
+
+	function proxifyRow(row) {
+
+	}
+
 
 	let arrayHandler = {
 
