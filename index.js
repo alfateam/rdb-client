@@ -91,12 +91,12 @@ function rdbClient() {
 		let request = new Request(`${url}`, {method: 'PATCH', headers, body});
 		// eslint-disable-next-line no-undef
 		let response = await fetch(request);
-		if (response.status === 200) {
+		if (response.status >= 200 && response.status < 300 ) {
 			rootMap.set(array, {jsonMap: new Map(), original: new Set(array), url});
-			return response.json();
+			return;
 		}
 		else {
-			let msg = response.json && await response.json() || `Status ${response.status} from server`;
+			let msg = response.text && await response.text() || `Status ${response.status} from server`;
 			let e = new Error(msg);
 			// @ts-ignore
 			e.status = response.status;
