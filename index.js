@@ -52,7 +52,7 @@ function rdbClient() {
 	}
 
 	function proxify2(url, itemOrArray) {
-		if (Array.isArray(table, itemOrArray))
+		if (Array.isArray(itemOrArray))
 			return proxifyArray(url, itemOrArray);
 		else
 			return proxifyRow(url, itemOrArray);
