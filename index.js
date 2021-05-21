@@ -74,7 +74,7 @@ function rdbClient() {
 		}
 	}
 
-	function saveArray(array) {
+	async function saveArray(array) {
 		let {original, jsonMap} = rootMap.get(array);
 		let {added, removed, changed} = difference(original, new Set(array), jsonMap);
 		let insertPatch = createPatch([], added);
@@ -82,10 +82,28 @@ function rdbClient() {
 		let updatePatch = createPatch(changed.map(x => JSON.parse(jsonMap.get(x))), changed);
 		let patch = [...insertPatch, ...updatePatch, ...deletePatch];
 		console.log('patch ' + util.inspect(patch, { depth: 10 }));
+
+		let body = JSON.stringify(patch);
+		// eslint-disable-next-line no-undef
+		var headers = new Headers();
+		headers.append('Content-Type', 'application/json');
+		// eslint-disable-next-line no-undef
+		let request = new Request(`${url}`, {method: 'PATCH', headers, body});
+		// eslint-disable-next-line no-undef
+		let response = await fetch(request);
+		if (response.status === 200) {
+			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
+			return response.json();
+		}
+		else {
+			let msg = response.json && await response.json() || `Status ${response.status} from server`;
+			let e = new Error(msg);
+			// @ts-ignore
+			e.status = response.status;
+			throw e;
+		}
 		//todo
-		//save on server
 		//refresh changed and inserted with data from server with original strategy
-		//rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
 	}
 
 	function difference(setA, setB, jsonMap) {
@@ -242,7 +260,7 @@ function rdbClient() {
 			// eslint-disable-next-line no-undef
 			let response = await fetch(request);
 			if (response.status === 200) {
-				return response.json();
+				return proxify2(response.json());
 			}
 			else {
 				let msg = response.json && await response.json() || `Status ${response.status} from server`;
