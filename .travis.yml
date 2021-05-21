@@ -5,3 +5,7 @@ cache:
   directories:
   - node_modules
 after_success: npm run coveralls
+branches:
+  only:
+  - master
+  - stable
