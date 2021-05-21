@@ -51,16 +51,16 @@ function rdbClient() {
 		}
 	}
 
-	function proxify2(itemOrArray) {
-		if (Array.isArray(itemOrArray))
-			return proxifyArray(itemOrArray);
+	function proxify2(url, itemOrArray) {
+		if (Array.isArray(table, itemOrArray))
+			return proxifyArray(url, itemOrArray);
 		else
-			return proxifyRow(itemOrArray);
+			return proxifyRow(url, itemOrArray);
 	}
 
-	function proxifyArray(array) {
+	function proxifyArray(url, array) {
 		let arrayProxy =  onChange(array, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate: onValidate});
-		rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
+		rootMap.set(array, {jsonMap: new Map(), original: new Set(array), url});
 		arrayProxy.save = saveArray.bind(null, array);
 		return arrayProxy;
 
@@ -75,7 +75,7 @@ function rdbClient() {
 	}
 
 	async function saveArray(array) {
-		let {original, jsonMap} = rootMap.get(array);
+		let {original, jsonMap, url} = rootMap.get(array);
 		let {added, removed, changed} = difference(original, new Set(array), jsonMap);
 		let insertPatch = createPatch([], added);
 		let deletePatch = createPatch(removed, []);
@@ -92,7 +92,7 @@ function rdbClient() {
 		// eslint-disable-next-line no-undef
 		let response = await fetch(request);
 		if (response.status === 200) {
-			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
+			rootMap.set(array, {jsonMap: new Map(), original: new Set(array), url});
 			return response.json();
 		}
 		else {
@@ -247,7 +247,7 @@ function rdbClient() {
 		let c = {
 			getManyDto,
 		};
-
+		let _proxify = proxify2.bind(null, url);
 		async function getManyDto(filter, strategy) {
 			let body = JSON.stringify({
 				filter, strategy
@@ -260,7 +260,7 @@ function rdbClient() {
 			// eslint-disable-next-line no-undef
 			let response = await fetch(request);
 			if (response.status === 200) {
-				return proxify2(await response.json());
+				return _proxify(await response.json());
 			}
 			else {
 				let msg = response.json && await response.json() || `Status ${response.status} from server`;
