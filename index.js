@@ -260,7 +260,7 @@ function rdbClient() {
 			// eslint-disable-next-line no-undef
 			let response = await fetch(request);
 			if (response.status === 200) {
-				return proxify2(response.json());
+				return proxify2(await response.json());
 			}
 			else {
 				let msg = response.json && await response.json() || `Status ${response.status} from server`;
