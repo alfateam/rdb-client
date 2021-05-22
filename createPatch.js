@@ -25,7 +25,7 @@ module.exports = function createPatch(original, dto) {
 
 	function toCompareObject(object) {
 		if (Array.isArray(object)) {
-			let copy = {__patchType : 'Array'};
+			let copy = { __patchType: 'Array' };
 			for (var i = 0; i < object.length; i++) {
 				let element = toCompareObject(object[i]);
 				if (element === Object(element) && 'id' in element)
@@ -41,6 +41,30 @@ module.exports = function createPatch(original, dto) {
 			}
 			return copy;
 		}
+		else if (isValidDate(object))
+			return toIsoString(object);
 		return object;
+	}
+
+	function isValidDate(d) {
+		return d instanceof Date && !isNaN(d);
+	}
+
+	function toIsoString(date) {
+		var tzo = -date.getTimezoneOffset(),
+			dif = tzo >= 0 ? '+' : '-';
+		function pad(num) {
+			var norm = Math.floor(Math.abs(num));
+			return (norm < 10 ? '0' : '') + norm;
+		}
+
+		return date.getFullYear() +
+			'-' + pad(date.getMonth() + 1) +
+			'-' + pad(date.getDate()) +
+			'T' + pad(date.getHours()) +
+			':' + pad(date.getMinutes()) +
+			':' + pad(date.getSeconds()) +
+			dif + pad(tzo / 60) +
+			':' + pad(tzo % 60);
 	}
 };
