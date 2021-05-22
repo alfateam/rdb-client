@@ -26,7 +26,7 @@ module.exports = function createPatch(original, dto) {
 	function toCompareObject(object) {
 		if (Array.isArray(object)) {
 			let copy = { __patchType: 'Array' };
-			for (var i = 0; i < object.length; i++) {
+			for (let i = 0; i < object.length; i++) {
 				let element = toCompareObject(object[i]);
 				if (element === Object(element) && 'id' in element)
 					copy[element.id] = element;
@@ -34,15 +34,16 @@ module.exports = function createPatch(original, dto) {
 					copy[i] = element;
 			}
 			return copy;
-		} else if (object === Object(object)) {
+		}
+		else if (isValidDate(object))
+			return toIsoString(object);
+		else if (object === Object(object)) {
 			let copy = {};
 			for (let name in object) {
 				copy[name] = toCompareObject(object[name]);
 			}
 			return copy;
 		}
-		else if (isValidDate(object))
-			return toIsoString(object);
 		return object;
 	}
 
@@ -51,10 +52,11 @@ module.exports = function createPatch(original, dto) {
 	}
 
 	function toIsoString(date) {
-		var tzo = -date.getTimezoneOffset(),
-			dif = tzo >= 0 ? '+' : '-';
+		console.log(date);
+		let tzo = -date.getTimezoneOffset();
+		let dif = tzo >= 0 ? '+' : '-';
 		function pad(num) {
-			var norm = Math.floor(Math.abs(num));
+			let norm = Math.floor(Math.abs(num));
 			return (norm < 10 ? '0' : '') + norm;
 		}
 
