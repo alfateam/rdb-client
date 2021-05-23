@@ -23,15 +23,15 @@ function rdbClient() {
 	}
 
 	function proxifyArray(url, array) {
-		let onValidate = () => true;
-		let arrayProxy =  onChange(array, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate: onValidate});
+		let enabled = false;
+		let arrayProxy =  onChange(array, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
 		rootMap.set(array, {jsonMap: new Map(), original: new Set(array), url});
 		arrayProxy.save = saveArray.bind(null, array);
-		onValidate = _onValidate;
+		enabled = true;
 		return arrayProxy;
 
-		function _onValidate(path) {
-			if (path.length > 0) {
+		function onValidate(path) {
+			if (enabled && path.length > 0) {
 				let {jsonMap} = rootMap.get(array);
 				if (!jsonMap.has(array[path[0]]))
 					jsonMap.set(array[path[0]], JSON.stringify(array[path[0]]));
@@ -41,14 +41,16 @@ function rdbClient() {
 	}
 
 	function proxifyRow(url, row) {
-		let onValidate = () => true;
-		let rowProxy = onChange(row, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate: onValidate});
+		let enabled = false;
+		let rowProxy = onChange(row, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
 		rootMap.set(row, {jsonMap: new Map(), url});
 		rowProxy.save = saveRow.bind(null, row);
-		onValidate = _onValidate;
+		enabled = true;
 		return rowProxy;
 
-		function _onValidate() {
+		function onValidate() {
+			if (!enabled)
+				return true;
 			let root = rootMap.get(row);
 			if (!root.json)
 				root.json = JSON.stringify(rowProxy);
