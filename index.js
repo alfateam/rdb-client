@@ -44,7 +44,7 @@ function rdbClient() {
 		rowProxy.save = saveRow.bind(null, row);
 
 		function onValidate() {
-			let root = rootMap.get(rowProxy);
+			let root = rootMap.get(row);
 			if (!root.json)
 				root.json = JSON.stringify(rowProxy);
 			return true;
