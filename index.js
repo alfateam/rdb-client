@@ -23,12 +23,14 @@ function rdbClient() {
 	}
 
 	function proxifyArray(url, array) {
+		let onValidate = () => true;
 		let arrayProxy =  onChange(array, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate: onValidate});
 		rootMap.set(array, {jsonMap: new Map(), original: new Set(array), url});
 		arrayProxy.save = saveArray.bind(null, array);
+		onValidate = _onValidate;
 		return arrayProxy;
 
-		function onValidate(path) {
+		function _onValidate(path) {
 			if (path.length > 0) {
 				let {jsonMap} = rootMap.get(array);
 				if (!jsonMap.has(array[path[0]]))
@@ -39,17 +41,20 @@ function rdbClient() {
 	}
 
 	function proxifyRow(url, row) {
+		let onValidate = () => true;
 		let rowProxy = onChange(row, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate: onValidate});
 		rootMap.set(row, {jsonMap: new Map(), url});
 		rowProxy.save = saveRow.bind(null, row);
+		onValidate = _onValidate;
+		return rowProxy;
 
-		function onValidate() {
+		function _onValidate() {
 			let root = rootMap.get(row);
 			if (!root.json)
 				root.json = JSON.stringify(rowProxy);
 			return true;
 		}
-		return rowProxy;
+
 	}
 
 	async function saveArray(array) {
