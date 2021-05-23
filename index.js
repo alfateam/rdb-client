@@ -24,7 +24,7 @@ function rdbClient() {
 
 	function proxifyArray(url, array) {
 		let enabled = false;
-		let arrayProxy =  onChange(array, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
+		let arrayProxy =  onChange(array, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate, ignoreKeys: ['save']});
 		rootMap.set(array, {jsonMap: new Map(), original: new Set(array), url});
 		arrayProxy.save = saveArray.bind(null, array);
 		enabled = true;
@@ -42,7 +42,7 @@ function rdbClient() {
 
 	function proxifyRow(url, row) {
 		let enabled = false;
-		let rowProxy = onChange(row, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
+		let rowProxy = onChange(row, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate, ignoreKeys: ['save', 'insert']});
 		rootMap.set(row, {jsonMap: new Map(), url});
 		rowProxy.save = saveRow.bind(null, row);
 		enabled = true;
