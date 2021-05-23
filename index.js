@@ -24,13 +24,15 @@ function rdbClient() {
 
 	function proxifyArray(url, array) {
 		let enabled = false;
-		let arrayProxy =  onChange(array, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate, ignoreKeys: ['save']});
+		let arrayProxy =  onChange(array, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
 		rootMap.set(array, {jsonMap: new Map(), original: new Set(array), url});
 		arrayProxy.save = saveArray.bind(null, array);
 		enabled = true;
 		return arrayProxy;
 
 		function onValidate(path) {
+			if (!enabled)
+				return false;
 			if (enabled && path.length > 0) {
 				let {jsonMap} = rootMap.get(array);
 				if (!jsonMap.has(array[path[0]]))
@@ -42,7 +44,7 @@ function rdbClient() {
 
 	function proxifyRow(url, row) {
 		let enabled = false;
-		let rowProxy = onChange(row, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate, ignoreKeys: ['save', 'insert']});
+		let rowProxy = onChange(row, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
 		rootMap.set(row, {jsonMap: new Map(), url});
 		rowProxy.save = saveRow.bind(null, row);
 		enabled = true;
@@ -50,10 +52,10 @@ function rdbClient() {
 
 		function onValidate() {
 			if (!enabled)
-				return true;
+				return false;
 			let root = rootMap.get(row);
 			if (!root.json)
-				root.json = JSON.stringify(rowProxy);
+				root.json = JSON.stringify(row);
 			return true;
 		}
 
