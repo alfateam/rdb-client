@@ -39,7 +39,7 @@ function rdbClient() {
 	}
 
 	function proxifyRow(url, row) {
-		let rowProxy = onChange(rowProxy, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate: onValidate});
+		let rowProxy = onChange(row, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate: onValidate});
 		rootMap.set(row, {jsonMap: new Map(), url});
 		rowProxy.save = saveRow.bind(null, row);
 
