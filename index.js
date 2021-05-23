@@ -1,21 +1,10 @@
 const onChange = require('on-change');
 const util = require('util');
 let createPatch = require('./createPatch');
-let _originalJSON = new WeakMap();
 let rootMap = new WeakMap();
-let _insertDeleteCount = new WeakMap();
-let i = 0;
-
 function rdbClient() {
-	let isSaving;
-	let isSlicing;
 	let c = rdbClient;
 	c.createPatch = createPatch;
-	c.insert = insert;
-	c.update = update;
-	c.delete = _delete;
-	c.proxify = proxify2;
-	c.save = save;
 	c.table = table;
 	c.or = column('or');
 	c.and = column('and');
@@ -25,33 +14,8 @@ function rdbClient() {
 		and: c.and,
 		not: c.not,
 	};
-	let originalJSON = new WeakMap();
-	let insertDeleteCount = new WeakMap();
-	let previousArray = new WeakMap();
-	let proxified = new WeakMap();
 
-	function proxify(itemOrArray) {
-		if (proxified.has(itemOrArray))
-			return itemOrArray;
-		if (Array.isArray(itemOrArray)) {
-			for (let i = 0; i < itemOrArray.length; i++) {
-				const row = itemOrArray[i];
-				itemOrArray[i] = proxify(row);
-
-			}
-			let p = new Proxy(itemOrArray, arrayHandler);
-			insertDeleteCount.set(p, new Map());
-			proxified.set(p, p);
-			return p;
-		}
-		else {
-			let p = new Proxy(itemOrArray, handler);
-			proxified.set(p, p);
-			return p;
-		}
-	}
-
-	function proxify2(url, itemOrArray) {
+	function proxify(url, itemOrArray) {
 		if (Array.isArray(itemOrArray))
 			return proxifyArray(url, itemOrArray);
 		else
@@ -70,6 +34,19 @@ function rdbClient() {
 				if (!jsonMap.has(array[path[0]]))
 					jsonMap.set(array[path[0]], JSON.stringify(array[path[0]]));
 			}
+			return true;
+		}
+	}
+
+	function proxifyRow(url, row) {
+		let rowProxy = onChange(rowProxy, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate: onValidate});
+		rootMap.set(row, {jsonMap: new Map(), url});
+		rowProxy.save = saveRow.bind(null, row);
+
+		function onValidate() {
+			let root = rootMap.get(rowProxy);
+			if (!root.json)
+				root.json = JSON.stringify(rowProxy);
 			return true;
 		}
 	}
@@ -105,6 +82,34 @@ function rdbClient() {
 		//todo
 		//refresh changed and inserted with data from server with original strategy
 	}
+	async function saveRow(row) {
+		let {json, url} = rootMap.get(row);
+		if (!json)
+			return;
+		let patch = createPatch([JSON.parse(json)], [row]);
+		console.log('patch ' + util.inspect(patch, { depth: 10 }));
+		let body = JSON.stringify(patch);
+		// eslint-disable-next-line no-undef
+		var headers = new Headers();
+		headers.append('Content-Type', 'application/json');
+		// eslint-disable-next-line no-undef
+		let request = new Request(`${url}`, {method: 'PATCH', headers, body});
+		// eslint-disable-next-line no-undef
+		let response = await fetch(request);
+		if (response.status >= 200 && response.status < 300 ) {
+			rootMap.set(row, {url});
+			return;
+		}
+		else {
+			let msg = response.text && await response.text() || `Status ${response.status} from server`;
+			let e = new Error(msg);
+			// @ts-ignore
+			e.status = response.status;
+			throw e;
+		}
+		//todo
+		//refresh changed and inserted with data from server with original strategy
+	}
 
 	function difference(setA, setB, jsonMap) {
 		let removed = new Set(setA);
@@ -120,134 +125,17 @@ function rdbClient() {
 			}
 		}
 
-
-		console.log('added ' + util.inspect(added, { depth: 10 }));
-		console.log('removed ' + util.inspect(removed, { depth: 10 }));
-		console.log('changed ' + util.inspect(changed, { depth: 10 }));
-
 		return {added, removed: Array.from(removed), changed};
-	}
-
-	function proxifyRow(row) {
-
-	}
-
-
-	let arrayHandler = {
-
-		get(target, property, receiver) {
-			if (property === 'length' & !isSlicing) {
-				isSlicing = true;
-				previousArray.set(receiver, target.slice(0));
-				isSlicing = false;
-			}
-			const value = Reflect.get(target, property, receiver);
-			// if (typeof value === 'object')
-			// 	return proxify(value);
-			return value;
-		},
-		set: function(target, property, value, receiver) {
-			isSlicing = true;
-			let previous = receiver[property];
-			if (property === 'length' && previous > value) {
-				let previousAr = previousArray.get(receiver);
-				for (let i = Number.parseInt(value); i < previousAr.length; i++) {
-					let row = previousAr[i];
-					updateInsertDeleteCount(receiver, row, -1);
-				}
-
-			}
-			else if (typeof previous === 'object')
-				updateInsertDeleteCount(receiver, previous, -1);
-			if (typeof value === 'object') {
-				value = proxify(value);
-				updateInsertDeleteCount(receiver, value, 1);
-			}
-			isSlicing = false;
-			return Reflect.set(target, property, value);
-		}
-	};
-
-	let handler = {
-		set: function(obj, prop, value, receiver) {
-			if (isSaving)
-				obj[prop] = value;
-			else if (! originalJSON.has(receiver)) {
-				originalJSON.set(receiver, JSON.stringify(receiver));
-				obj[prop] = value;
-			}
-			return true;
-		}
-	};
-	function updateInsertDeleteCount(array, object, step) {
-		let countMap = insertDeleteCount.get(array);
-		let count = countMap.get(object) || 0;
-		countMap.set(object, count + step);
-	}
-
-	async function insert(row, saveFn) {
-		let patch = createPatch([], [row]);
-		let changedRow = await saveFn(patch);
-		console.log('changed inserted ' + JSON.stringify(changedRow));
-		row =  proxify(row);
-		isSaving = true;
-		refresh(row, changedRow);
-		isSaving = false;
-		return row;
-	}
-
-	async function update(row, saveFn) {
-		console.log('updating');
-		let patch = [];
-		if (originalJSON.has(row)) {
-			patch = createPatch([JSON.parse(originalJSON.get(row))], [row]);
-			console.log('got patch');
-		}
-		else
-			console.log('no patch');
-		let changedRow = await saveFn(patch);
-		isSaving = true;
-		refresh(row, changedRow);
-		isSaving = false;
-		return row;
-	}
-
-	async function _delete(row, saveFn) {
-		let patch = createPatch([row], []);
-		await saveFn(patch);
-		return;
-	}
-
-	function refresh(row, updated) {
-		for(let p in row) {
-			if (!(p in updated))
-				delete row[p];
-		}
-		Object.assign(row, updated);
-	}
-	async function save(rows, saveFn) {
-		let counts = insertDeleteCount.get(rows);
-		for (let i = 0; i < rows.length; i++) {
-			let row = rows[i];
-			if (counts.get(row) > 0)
-				await insert(row, saveFn);
-			else if (!counts.has(row) || counts.get(row) === 0)
-				await update(row, saveFn);
-		}
-		for(let [row, count] of counts) {
-			if (count < 0)
-				await _delete(row, saveFn);
-		}
-		return rows;
-
 	}
 
 
 	function table(url) {
+		let _proxify = proxify.bind(null, url);
 		let c = {
 			getManyDto,
+			getMany: getManyDto,
+			proxify: _proxify
 		};
-		let _proxify = proxify2.bind(null, url);
 		async function getManyDto(filter, strategy) {
 			let body = JSON.stringify({
 				filter, strategy
