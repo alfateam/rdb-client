@@ -49,6 +49,7 @@ function rdbClient() {
 				root.json = JSON.stringify(rowProxy);
 			return true;
 		}
+		return rowProxy;
 	}
 
 	async function saveArray(array) {
