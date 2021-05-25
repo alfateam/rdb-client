@@ -4,6 +4,9 @@ let createPatch = require('./createPatch');
 let rootMap = new WeakMap();
 function rdbClient() {
 	let c = rdbClient;
+	// let rowProto = {
+
+	// };
 	c.createPatch = createPatch;
 	c.table = table;
 	c.or = column('or');
@@ -147,8 +150,12 @@ function rdbClient() {
 			proxify: _proxify
 		};
 		async function getManyDto(filter, strategy) {
+			// let body = JSON.stringify({
+			// 	filter, strategy
+			// });
 			let body = JSON.stringify({
-				filter, strategy
+				path: 'getManyDto',
+				args: [filter, strategy]
 			});
 			// eslint-disable-next-line no-undef
 			var headers = new Headers();
