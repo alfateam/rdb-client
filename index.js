@@ -27,9 +27,9 @@ function rdbClient() {
 
 	function proxifyArray(url, array) {
 		let enabled = false;
+		array.save = saveArray.bind(null, array);
 		let arrayProxy =  onChange(array, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
 		rootMap.set(array, {jsonMap: new Map(), original: new Set(array), url});
-		arrayProxy.save = saveArray.bind(null, array);
 		enabled = true;
 		return arrayProxy;
 
@@ -47,9 +47,9 @@ function rdbClient() {
 
 	function proxifyRow(url, row) {
 		let enabled = false;
+		row.save = saveRow.bind(null, row);
 		let rowProxy = onChange(row, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
 		rootMap.set(row, {jsonMap: new Map(), url});
-		rowProxy.save = saveRow.bind(null, row);
 		enabled = true;
 		return rowProxy;
 
@@ -62,6 +62,12 @@ function rdbClient() {
 			return true;
 		}
 
+	}
+	async function save(itemOrArray) {
+		if (Array.isArray(itemOrArray))
+			return saveArray(itemOrArray);
+		else
+			return saveRow(itemOrArray);
 	}
 
 	async function saveArray(array) {
@@ -100,7 +106,36 @@ function rdbClient() {
 		if (!json)
 			return;
 		let patch = createPatch([JSON.parse(json)], [row]);
-		console.log('patch ' + util.inspect(patch, { depth: 10 }));
+		let body = JSON.stringify(patch);
+		// eslint-disable-next-line no-undef
+		var headers = new Headers();
+		headers.append('Content-Type', 'application/json');
+		// eslint-disable-next-line no-undef
+		let request = new Request(`${url}`, {method: 'PATCH', headers, body});
+		// eslint-disable-next-line no-undef
+		let response = await fetch(request);
+		if (response.status >= 200 && response.status < 300 ) {
+			rootMap.set(row, {url});
+			return;
+		}
+		else {
+			let msg = response.text && await response.text() || `Status ${response.status} from server`;
+			let e = new Error(msg);
+			// @ts-ignore
+			e.status = response.status;
+			throw e;
+		}
+		//todo
+		//refresh changed and inserted with data from server with original strategy
+	}
+
+	async function _delete(itemOrArray) {
+		let patch;
+		if (Array.isArray(itemOrArray))
+			patch = createPatch(itemOrArray, []);
+		else
+			patch = createPatch([itemOrArray], []);
+
 		let body = JSON.stringify(patch);
 		// eslint-disable-next-line no-undef
 		var headers = new Headers();
@@ -147,12 +182,10 @@ function rdbClient() {
 		let c = {
 			getManyDto,
 			getMany: getManyDto,
-			proxify: _proxify
+			proxify: _proxify,
+			save: save,
 		};
 		async function getManyDto(filter, strategy) {
-			// let body = JSON.stringify({
-			// 	filter, strategy
-			// });
 			let body = JSON.stringify({
 				path: 'getManyDto',
 				args: [filter, strategy]
