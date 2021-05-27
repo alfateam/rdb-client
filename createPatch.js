@@ -1,4 +1,5 @@
 let rfc = require('rfc6902');
+let dateToIsoString = require('./dateToIsoString');
 
 module.exports = function createPatch(original, dto) {
 	let clonedOriginal = toCompareObject(original);
@@ -36,7 +37,7 @@ module.exports = function createPatch(original, dto) {
 			return copy;
 		}
 		else if (isValidDate(object))
-			return toIsoString(object);
+			return dateToIsoString(object);
 		else if (object === Object(object)) {
 			let copy = {};
 			for (let name in object) {
@@ -51,22 +52,4 @@ module.exports = function createPatch(original, dto) {
 		return d instanceof Date && !isNaN(d);
 	}
 
-	function toIsoString(date) {
-		console.log(date);
-		let tzo = -date.getTimezoneOffset();
-		let dif = tzo >= 0 ? '+' : '-';
-		function pad(num) {
-			let norm = Math.floor(Math.abs(num));
-			return (norm < 10 ? '0' : '') + norm;
-		}
-
-		return date.getFullYear() +
-			'-' + pad(date.getMonth() + 1) +
-			'-' + pad(date.getDate()) +
-			'T' + pad(date.getHours()) +
-			':' + pad(date.getMinutes()) +
-			':' + pad(date.getSeconds()) +
-			dif + pad(tzo / 60) +
-			':' + pad(tzo % 60);
-	}
 };

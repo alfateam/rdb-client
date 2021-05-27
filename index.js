@@ -1,12 +1,10 @@
 const onChange = require('on-change');
 const util = require('util');
 let createPatch = require('./createPatch');
+let dateToIsoString = require('./dateToIsoString');
 let rootMap = new WeakMap();
 function rdbClient() {
 	let c = rdbClient;
-	// let rowProto = {
-
-	// };
 	c.createPatch = createPatch;
 	c.table = table;
 	c.or = column('or');
@@ -39,10 +37,16 @@ function rdbClient() {
 			if (enabled && path.length > 0) {
 				let {jsonMap} = rootMap.get(array);
 				if (!jsonMap.has(array[path[0]]))
-					jsonMap.set(array[path[0]], JSON.stringify(array[path[0]]));
+					jsonMap.set(array[path[0]], JSON.stringify(array[path[0]], replacer));
 			}
 			return true;
 		}
+	}
+
+	function replacer(key, value) {
+		if (value instanceof Date && !isNaN(key))
+			return dateToIsoString(value);
+		return value;
 	}
 
 	function proxifyRow(url, row) {
@@ -58,7 +62,7 @@ function rdbClient() {
 				return false;
 			let root = rootMap.get(row);
 			if (!root.json)
-				root.json = JSON.stringify(row);
+				root.json = JSON.stringify(row, replacer);
 			return true;
 		}
 
