@@ -3,6 +3,15 @@ const util = require('util');
 let createPatch = require('./createPatch');
 let dateToIsoString = require('./dateToIsoString');
 let rootMap = new WeakMap();
+let isStringifying = false;
+
+let dateToJSON = Date.prototype.toJSON;
+Date.prototype.toJSON = function() {
+	if (isStringifying)
+		return dateToIsoString(this);
+	return dateToJSON.apply(this);
+};
+
 function rdbClient() {
 	let c = rdbClient;
 	c.createPatch = createPatch;
@@ -37,16 +46,17 @@ function rdbClient() {
 			if (enabled && path.length > 0) {
 				let {jsonMap} = rootMap.get(array);
 				if (!jsonMap.has(array[path[0]]))
-					jsonMap.set(array[path[0]], JSON.stringify(array[path[0]], replacer));
+					jsonMap.set(array[path[0]], stringify(array[path[0]]));
 			}
 			return true;
 		}
 	}
 
-	function replacer(key, value) {
-		if (value instanceof Date && !isNaN(key))
-			return dateToIsoString(value);
-		return value;
+	function stringify(value) {
+		isStringifying = true;
+		let result = JSON.stringify(value);
+		isStringifying = false;
+		return result;
 	}
 
 	function proxifyRow(url, row) {
@@ -62,7 +72,7 @@ function rdbClient() {
 				return false;
 			let root = rootMap.get(row);
 			if (!root.json)
-				root.json = JSON.stringify(row, replacer);
+				root.json = stringify(row);
 			return true;
 		}
 
