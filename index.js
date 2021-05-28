@@ -34,8 +34,19 @@ function rdbClient() {
 
 	function proxifyArray(url, array) {
 		let enabled = false;
-		array.save = saveArray.bind(null, array);
-		let arrayProxy =  onChange(array, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
+		// array.save = saveArray.bind(null, array);
+		let handler = {
+			get(_target, property,) {
+				if (property === 'save')
+					return saveArray(array);
+				else
+					return Reflect.get(...arguments);
+			}
+
+		};
+		let innerProxy =  new Proxy(array, handler);
+
+		let arrayProxy =  onChange(innerProxy, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
 		rootMap.set(array, {jsonMap: new Map(), original: new Set(array), url});
 		enabled = true;
 		return arrayProxy;
@@ -61,8 +72,19 @@ function rdbClient() {
 
 	function proxifyRow(url, row) {
 		let enabled = false;
-		row.save = saveRow.bind(null, row);
-		let rowProxy = onChange(row, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
+		let handler = {
+			get(_target, property,) {
+				if (property === 'save')
+					return saveRow(row);
+				else
+					return Reflect.get(...arguments);
+			}
+
+		};
+		let innerProxy =  new Proxy(row, handler);
+
+		// row.save = saveRow.bind(null, row);
+		let rowProxy = onChange(innerProxy, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
 		rootMap.set(row, {jsonMap: new Map(), url});
 		enabled = true;
 		return rowProxy;
