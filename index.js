@@ -38,7 +38,7 @@ function rdbClient() {
 		let handler = {
 			get(_target, property,) {
 				if (property === 'save')
-					return saveArray(array);
+					return saveArray.bind(null,array);
 				else
 					return Reflect.get(...arguments);
 			}
