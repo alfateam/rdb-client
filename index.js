@@ -34,11 +34,12 @@ function rdbClient() {
 
 	function proxifyArray(url, array) {
 		let enabled = false;
-		// array.save = saveArray.bind(null, array);
 		let handler = {
 			get(_target, property,) {
 				if (property === 'save')
 					return saveArray.bind(null,array);
+				else if (property === 'insert')
+					return insertArray.bind(null,array);
 				else
 					return Reflect.get(...arguments);
 			}
@@ -75,15 +76,14 @@ function rdbClient() {
 		let handler = {
 			get(_target, property,) {
 				if (property === 'save')
-					return saveRow(row);
+					return saveRow.bind(null,row);
+				else if (property === 'insert')
+					return insertRow.bind(null,row);
 				else
 					return Reflect.get(...arguments);
 			}
-
 		};
 		let innerProxy =  new Proxy(row, handler);
-
-		// row.save = saveRow.bind(null, row);
 		let rowProxy = onChange(innerProxy, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
 		rootMap.set(row, {jsonMap: new Map(), url});
 		enabled = true;
@@ -113,7 +113,6 @@ function rdbClient() {
 		let deletePatch = createPatch(removed, []);
 		let updatePatch = createPatch(changed.map(x => JSON.parse(jsonMap.get(x))), changed);
 		let patch = [...insertPatch, ...updatePatch, ...deletePatch];
-		console.log('patch ' + util.inspect(patch, { depth: 10 }));
 
 		let body = JSON.stringify(patch);
 		// eslint-disable-next-line no-undef
@@ -125,6 +124,54 @@ function rdbClient() {
 		let response = await fetch(request);
 		if (response.status >= 200 && response.status < 300 ) {
 			rootMap.set(array, {jsonMap: new Map(), original: new Set(array), url});
+			return;
+		}
+		else {
+			let msg = response.text && await response.text() || `Status ${response.status} from server`;
+			let e = new Error(msg);
+			// @ts-ignore
+			e.status = response.status;
+			throw e;
+		}
+		//todo
+		//refresh changed and inserted with data from server with original strategy
+	}
+	async function insertArray(array) {
+		let {url} = rootMap.get(array);
+		let insertPatch = createPatch([], array);
+		let body = JSON.stringify(insertPatch);
+		// eslint-disable-next-line no-undef
+		var headers = new Headers();
+		headers.append('Content-Type', 'application/json');
+		// eslint-disable-next-line no-undef
+		let request = new Request(`${url}`, {method: 'PATCH', headers, body});
+		// eslint-disable-next-line no-undef
+		let response = await fetch(request);
+		if (response.status >= 200 && response.status < 300 ) {
+			rootMap.set(array, {jsonMap: new Map(), original: new Set(array), url});
+			return;
+		}
+		else {
+			let msg = response.text && await response.text() || `Status ${response.status} from server`;
+			let e = new Error(msg);
+			// @ts-ignore
+			e.status = response.status;
+			throw e;
+		}
+	}
+	async function insertRow(row) {
+		let {url} = rootMap.get(row);
+		let patch = createPatch([], [row]);
+		let body = JSON.stringify(patch);
+		// eslint-disable-next-line no-undef
+		var headers = new Headers();
+		headers.append('Content-Type', 'application/json');
+		// eslint-disable-next-line no-undef
+		let request = new Request(`${url}`, {method: 'PATCH', headers, body});
+		// eslint-disable-next-line no-undef
+		let response = await fetch(request);
+		if (response.status >= 200 && response.status < 300 ) {
+			rootMap.set(row, {url});
 			return;
 		}
 		else {
