@@ -31,10 +31,10 @@ module.exports = function createPatch(original, dto, options) {
 			for (let i = 0; i < object.length; i++) {
 				let element = toCompareObject(object[i], options);
 				if (options && options.keys && element === Object(element)) {
-					let key = {};
+					let key = [];
 					for (let i = 0; i < options.keys.length; i++) {
 						let keyName = options.keys[i];
-						key[keyName] = element[keyName];
+						key.push(element[keyName]);
 					}
 					copy[stringify(key)] = element;
 				}
