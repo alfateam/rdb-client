@@ -1,15 +1,7 @@
 const onChange = require('on-change');
 let createPatch = require('./createPatch');
-let dateToIsoString = require('./dateToIsoString');
+let stringify = require('./stringify');
 let rootMap = new WeakMap();
-let isStringifying = false;
-
-let dateToJSON = Date.prototype.toJSON;
-Date.prototype.toJSON = function() {
-	if (isStringifying)
-		return dateToIsoString(this);
-	return dateToJSON.apply(this);
-};
 
 function rdbClient() {
 	let c = rdbClient;
@@ -61,13 +53,6 @@ function rdbClient() {
 			}
 			return true;
 		}
-	}
-
-	function stringify(value) {
-		isStringifying = true;
-		let result = JSON.stringify(value);
-		isStringifying = false;
-		return result;
 	}
 
 	function proxifyRow(url, row) {
