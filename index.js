@@ -81,8 +81,33 @@ function rdbClient() {
 				root.json = stringify(row);
 			return true;
 		}
-
 	}
+
+	async function getMeta(rowOrArray) {
+		let {url, meta} = rootMap.get(rowOrArray);
+		if (meta)
+			return meta;
+		// eslint-disable-next-line no-undef
+		var headers = new Headers();
+		headers.append('Content-Type', 'application/json');
+		// eslint-disable-next-line no-undef
+		let request = new Request(`${url}`, {method: 'GET', headers, body});
+		// eslint-disable-next-line no-undef
+		let response = await fetch(request);
+		if (response.status === 200) {
+			meta = await response.json();
+			rootMap.get(rowOrArray).meta = meta;
+			return meta;
+		}
+		else {
+			let msg = response.text && await response.text() || `Status ${response.status} from server`;
+			let e = new Error(msg);
+			// @ts-ignore
+			e.status = response.status;
+			throw e;
+		}
+	}
+
 	async function save(itemOrArray) {
 		if (Array.isArray(itemOrArray))
 			return saveArray(itemOrArray);
@@ -92,10 +117,11 @@ function rdbClient() {
 
 	async function saveArray(array) {
 		let {original, jsonMap, url} = rootMap.get(array);
+		let meta = await getMeta(array);
 		let {added, removed, changed} = difference(original, new Set(array), jsonMap);
-		let insertPatch = createPatch([], added);
-		let deletePatch = createPatch(removed, []);
-		let updatePatch = createPatch(changed.map(x => JSON.parse(jsonMap.get(x))), changed);
+		let insertPatch = createPatch([], added, meta);
+		let deletePatch = createPatch(removed, [], meta);
+		let updatePatch = createPatch(changed.map(x => JSON.parse(jsonMap.get(x))), changed, meta);
 		let patch = [...insertPatch, ...updatePatch, ...deletePatch];
 
 		let body = JSON.stringify(patch);
@@ -122,7 +148,8 @@ function rdbClient() {
 	}
 	async function insertArray(array) {
 		let {url} = rootMap.get(array);
-		let insertPatch = createPatch([], array);
+		let meta = await getMeta(array);
+		let insertPatch = createPatch([], array, meta);
 		let body = JSON.stringify(insertPatch);
 		// eslint-disable-next-line no-undef
 		var headers = new Headers();
@@ -145,7 +172,8 @@ function rdbClient() {
 	}
 	async function insertRow(row) {
 		let {url} = rootMap.get(row);
-		let patch = createPatch([], [row]);
+		let meta = await getMeta(row);
+		let patch = createPatch([], [row], meta);
 		let body = JSON.stringify(patch);
 		// eslint-disable-next-line no-undef
 		var headers = new Headers();
@@ -172,7 +200,8 @@ function rdbClient() {
 		let {json, url} = rootMap.get(row);
 		if (!json)
 			return;
-		let patch = createPatch([JSON.parse(json)], [row]);
+		let meta = await getMeta(row);
+		let patch = createPatch([JSON.parse(json)], [row], meta);
 		let body = JSON.stringify(patch);
 		// eslint-disable-next-line no-undef
 		var headers = new Headers();
