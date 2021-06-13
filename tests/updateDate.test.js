@@ -1,4 +1,4 @@
-test('insert', async (done) => {
+test('updateDate', async (done) => {
 	let createPatch = require('../createPatch');
 	let a = {id: 1, date: new Date('2020-10-13')};
 	let b = {id: 1, date: new Date('2020-10-12')};

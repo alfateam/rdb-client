@@ -1,5 +1,4 @@
 const onChange = require('on-change');
-const util = require('util');
 let createPatch = require('./createPatch');
 let dateToIsoString = require('./dateToIsoString');
 let rootMap = new WeakMap();
@@ -189,36 +188,6 @@ function rdbClient() {
 		if (!json)
 			return;
 		let patch = createPatch([JSON.parse(json)], [row]);
-		let body = JSON.stringify(patch);
-		// eslint-disable-next-line no-undef
-		var headers = new Headers();
-		headers.append('Content-Type', 'application/json');
-		// eslint-disable-next-line no-undef
-		let request = new Request(`${url}`, {method: 'PATCH', headers, body});
-		// eslint-disable-next-line no-undef
-		let response = await fetch(request);
-		if (response.status >= 200 && response.status < 300 ) {
-			rootMap.set(row, {url});
-			return;
-		}
-		else {
-			let msg = response.text && await response.text() || `Status ${response.status} from server`;
-			let e = new Error(msg);
-			// @ts-ignore
-			e.status = response.status;
-			throw e;
-		}
-		//todo
-		//refresh changed and inserted with data from server with original strategy
-	}
-
-	async function _delete(itemOrArray) {
-		let patch;
-		if (Array.isArray(itemOrArray))
-			patch = createPatch(itemOrArray, []);
-		else
-			patch = createPatch([itemOrArray], []);
-
 		let body = JSON.stringify(patch);
 		// eslint-disable-next-line no-undef
 		var headers = new Headers();

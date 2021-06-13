@@ -1,24 +1,8 @@
-// test('insert', async (done) => {
-let table = require('../index').table('order');
-let a = {id: 5, name: 'update me', lines: [1, {b: false}]};
-let b = {id: 6, name: 'insert me', lines: [2, {c: 'c some'}]};
-let c = {id: 7, name: 'c', lines: [2, {c: 'c some'}]};
-let d = {id: 8, name: 'd', lines: [2, {c: 'c some'}]};
-
-let rows = table.proxify([a,b]);
-// rows.splice(1, c,d);
-rows[0].name =  'foo';
-rows[rows.length-1].name =  'juba';
-rows.pop();
-rows.push(c);
-
-// console.log(rows);
-rows.save();
-// console.log(client.previous);
-// if (rows[0].lines === client.previous)
-// 	console.log('same as previous');
-// rows.length = 1;
-// 	rows[0].name = 'changed name';
-// 	expect(updatePatch).toEqual([{'oldValue': 'insert me', 'op': 'replace','path': '/5/name','value': 'changed name'}]);
-// 	done();
-// });
+test('updateArray', async (done) => {
+	let createPatch = require('../createPatch');
+	let a = {id: 1, date: 'original'};
+	let b = {id: 1, date: 'changed'};
+	let updatePatch = createPatch([a], [b]);
+	expect(updatePatch).toEqual([{'op': 'replace', 'path': '/1/date', 'value': 'changed', 'oldValue': 'original'}]);
+	done();
+});
