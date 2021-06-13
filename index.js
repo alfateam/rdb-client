@@ -91,7 +91,7 @@ function rdbClient() {
 		var headers = new Headers();
 		headers.append('Content-Type', 'application/json');
 		// eslint-disable-next-line no-undef
-		let request = new Request(`${url}`, {method: 'GET', headers, body});
+		let request = new Request(`${url}`, {method: 'GET', headers});
 		// eslint-disable-next-line no-undef
 		let response = await fetch(request);
 		if (response.status === 200) {
