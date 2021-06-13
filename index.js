@@ -252,9 +252,10 @@ function rdbClient() {
 			save: save,
 		};
 		async function getManyDto(filter, strategy) {
+			let args = Array.prototype.slice.call(arguments);
 			let body = JSON.stringify({
 				path: 'getManyDto',
-				args: arguments
+				args
 			});
 			// eslint-disable-next-line no-undef
 			var headers = new Headers();
