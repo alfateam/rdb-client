@@ -254,7 +254,7 @@ function rdbClient() {
 		async function getManyDto(filter, strategy) {
 			let body = JSON.stringify({
 				path: 'getManyDto',
-				args: [filter, strategy]
+				args: arguments
 			});
 			// eslint-disable-next-line no-undef
 			var headers = new Headers();
