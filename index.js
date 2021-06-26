@@ -5,7 +5,7 @@ let rootMap = new WeakMap();
 
 function rdbClient() {
 	let c = rdbClient;
-	c.createPatch = createPatch;
+	c.createPatch = createPatch; //keep for legacy reasons
 	c.table = table;
 	c.or = column('or');
 	c.and = column('and');
@@ -16,242 +16,34 @@ function rdbClient() {
 		not: c.not,
 	};
 
-	function proxify(url, itemOrArray) {
-		if (Array.isArray(itemOrArray))
-			return proxifyArray(url, itemOrArray);
-		else
-			return proxifyRow(url, itemOrArray);
-	}
-
-	function proxifyArray(url, array) {
-		let enabled = false;
-		let handler = {
-			get(_target, property,) {
-				if (property === 'save')
-					return saveArray.bind(null,array);
-				else if (property === 'insert')
-					return insertArray.bind(null,array);
-				else
-					return Reflect.get(...arguments);
-			}
-
-		};
-		let innerProxy =  new Proxy(array, handler);
-
-		let arrayProxy =  onChange(innerProxy, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
-		rootMap.set(array, {jsonMap: new Map(), original: new Set(array), url});
-		enabled = true;
-		return arrayProxy;
-
-		function onValidate(path) {
-			if (!enabled)
-				return false;
-			if (enabled && path.length > 0) {
-				let {jsonMap} = rootMap.get(array);
-				if (!jsonMap.has(array[path[0]]))
-					jsonMap.set(array[path[0]], stringify(array[path[0]]));
-			}
-			return true;
-		}
-	}
-
-	function proxifyRow(url, row) {
-		let enabled = false;
-		let handler = {
-			get(_target, property,) {
-				if (property === 'save')
-					return saveRow.bind(null,row);
-				else if (property === 'insert')
-					return insertRow.bind(null,row);
-				else
-					return Reflect.get(...arguments);
-			}
-		};
-		let innerProxy =  new Proxy(row, handler);
-		let rowProxy = onChange(innerProxy, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
-		rootMap.set(row, {jsonMap: new Map(), url});
-		enabled = true;
-		return rowProxy;
-
-		function onValidate() {
-			if (!enabled)
-				return false;
-			let root = rootMap.get(row);
-			if (!root.json)
-				root.json = stringify(row);
-			return true;
-		}
-	}
-
-	async function getMeta(rowOrArray) {
-		let {url, meta} = rootMap.get(rowOrArray);
-		if (meta)
-			return meta;
-		// eslint-disable-next-line no-undef
-		var headers = new Headers();
-		headers.append('Content-Type', 'application/json');
-		// eslint-disable-next-line no-undef
-		let request = new Request(`${url}`, {method: 'GET', headers});
-		// eslint-disable-next-line no-undef
-		let response = await fetch(request);
-		if (response.status === 200) {
-			meta = await response.json();
-			rootMap.get(rowOrArray).meta = meta;
-			return meta;
-		}
-		else {
-			let msg = response.text && await response.text() || `Status ${response.status} from server`;
-			let e = new Error(msg);
-			// @ts-ignore
-			e.status = response.status;
-			throw e;
-		}
-	}
-
-	async function save(itemOrArray) {
-		if (Array.isArray(itemOrArray))
-			return saveArray(itemOrArray);
-		else
-			return saveRow(itemOrArray);
-	}
-
-	async function saveArray(array) {
-		let {original, jsonMap, url} = rootMap.get(array);
-		let meta = await getMeta(array);
-		let {added, removed, changed} = difference(original, new Set(array), jsonMap);
-		let insertPatch = createPatch([], added, meta);
-		let deletePatch = createPatch(removed, [], meta);
-		let updatePatch = createPatch(changed.map(x => JSON.parse(jsonMap.get(x))), changed, meta);
-		let patch = [...insertPatch, ...updatePatch, ...deletePatch];
-
-		let body = JSON.stringify(patch);
-		// eslint-disable-next-line no-undef
-		var headers = new Headers();
-		headers.append('Content-Type', 'application/json');
-		// eslint-disable-next-line no-undef
-		let request = new Request(`${url}`, {method: 'PATCH', headers, body});
-		// eslint-disable-next-line no-undef
-		let response = await fetch(request);
-		if (response.status >= 200 && response.status < 300 ) {
-			rootMap.set(array, {jsonMap: new Map(), original: new Set(array), url});
-			return;
-		}
-		else {
-			let msg = response.text && await response.text() || `Status ${response.status} from server`;
-			let e = new Error(msg);
-			// @ts-ignore
-			e.status = response.status;
-			throw e;
-		}
-		//todo
-		//refresh changed and inserted with data from server with original strategy
-	}
-	async function insertArray(array) {
-		let {url} = rootMap.get(array);
-		let meta = await getMeta(array);
-		let insertPatch = createPatch([], array, meta);
-		let body = JSON.stringify(insertPatch);
-		// eslint-disable-next-line no-undef
-		var headers = new Headers();
-		headers.append('Content-Type', 'application/json');
-		// eslint-disable-next-line no-undef
-		let request = new Request(`${url}`, {method: 'PATCH', headers, body});
-		// eslint-disable-next-line no-undef
-		let response = await fetch(request);
-		if (response.status >= 200 && response.status < 300 ) {
-			rootMap.set(array, {jsonMap: new Map(), original: new Set(array), url});
-			return;
-		}
-		else {
-			let msg = response.text && await response.text() || `Status ${response.status} from server`;
-			let e = new Error(msg);
-			// @ts-ignore
-			e.status = response.status;
-			throw e;
-		}
-	}
-	async function insertRow(row) {
-		let {url} = rootMap.get(row);
-		let meta = await getMeta(row);
-		let patch = createPatch([], [row], meta);
-		let body = JSON.stringify(patch);
-		// eslint-disable-next-line no-undef
-		var headers = new Headers();
-		headers.append('Content-Type', 'application/json');
-		// eslint-disable-next-line no-undef
-		let request = new Request(`${url}`, {method: 'PATCH', headers, body});
-		// eslint-disable-next-line no-undef
-		let response = await fetch(request);
-		if (response.status >= 200 && response.status < 300 ) {
-			rootMap.set(row, {url});
-			return;
-		}
-		else {
-			let msg = response.text && await response.text() || `Status ${response.status} from server`;
-			let e = new Error(msg);
-			// @ts-ignore
-			e.status = response.status;
-			throw e;
-		}
-		//todo
-		//refresh changed and inserted with data from server with original strategy
-	}
-	async function saveRow(row) {
-		let {json, url} = rootMap.get(row);
-		if (!json)
-			return;
-		let meta = await getMeta(row);
-		let patch = createPatch([JSON.parse(json)], [row], meta);
-		let body = JSON.stringify(patch);
-		// eslint-disable-next-line no-undef
-		var headers = new Headers();
-		headers.append('Content-Type', 'application/json');
-		// eslint-disable-next-line no-undef
-		let request = new Request(`${url}`, {method: 'PATCH', headers, body});
-		// eslint-disable-next-line no-undef
-		let response = await fetch(request);
-		if (response.status >= 200 && response.status < 300 ) {
-			rootMap.set(row, {url});
-			return;
-		}
-		else {
-			let msg = response.text && await response.text() || `Status ${response.status} from server`;
-			let e = new Error(msg);
-			// @ts-ignore
-			e.status = response.status;
-			throw e;
-		}
-		//todo
-		//refresh changed and inserted with data from server with original strategy
-	}
-
-	function difference(setA, setB, jsonMap) {
-		let removed = new Set(setA);
-		let added = [];
-		let changed = [];
-		for (let elem of setB) {
-			if (!setA.has(elem))
-				added.push(elem);
-			else {
-				removed.delete(elem);
-				if (jsonMap.get(elem))
-					changed.push(elem);
-			}
-		}
-
-		return {added, removed: Array.from(removed), changed};
-	}
-
-
 	function table(url) {
-		let _proxify = proxify.bind(null, url);
+		let meta;
 		let c = {
 			getManyDto,
 			getMany: getManyDto,
-			proxify: _proxify,
+			proxify,
 			save: save,
 		};
-		async function getManyDto(filter, strategy) {
+
+		let handler = {
+			get(_target, property,) {
+				if (property in c)
+					return Reflect.get(...arguments);
+				else
+					return column(property);
+			}
+
+		};
+		let _table =  new Proxy(c, handler);
+		return _table;
+
+		async function getManyDto() {
+			let args = Array.prototype.slice.call(arguments);
+			let rows =  await getManyDtoCore.apply(null, args);
+			return proxify(rows);
+		}
+
+		async function getManyDtoCore() {
 			let args = Array.prototype.slice.call(arguments);
 			let body = JSON.stringify({
 				path: 'getManyDto',
@@ -265,7 +57,7 @@ function rdbClient() {
 			// eslint-disable-next-line no-undef
 			let response = await fetch(request);
 			if (response.status === 200) {
-				return _proxify(await response.json());
+				return await response.json();
 			}
 			else {
 				let msg = response.json && await response.json() || `Status ${response.status} from server`;
@@ -276,50 +68,317 @@ function rdbClient() {
 			}
 		}
 
-		let handler = {
-			get(_target, property,) {
-				if (property in c)
-					return Reflect.get(...arguments);
-				else
-					return column(property);
-			}
+		function proxify(itemOrArray) {
+			if (Array.isArray(itemOrArray))
+				return proxifyArray(itemOrArray);
+			else
+				return proxifyRow(itemOrArray);
+		}
 
-		};
-		return new Proxy(c, handler);
-	}
-
-	function column(path, ...previous) {
-		function c() {
-			let args = previous.concat(Array.prototype.slice.call(arguments));
-			let result = {path, args};
+		function proxifyArray(array) {
+			let enabled = false;
 			let handler = {
-				get(_target, property) {
-					if (property === 'toJSON')
-						return result.toJSON;
-					if (property in result)
-						return Reflect.get(...arguments);
+				get(_target, property,) {
+					if (property === 'save')
+						return saveArray.bind(null,array);
+					else if (property === 'insert')
+						return insertArray.bind(null,array);
+					else if (property === 'find')
+						return findArray.bind(null,array);
 					else
-						return column(property, result);
+						return Reflect.get(...arguments);
+				}
 
+			};
+			let innerProxy =  new Proxy(array, handler);
+
+			let arrayProxy =  onChange(innerProxy, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
+			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
+			enabled = true;
+			return arrayProxy;
+
+			function onValidate(path) {
+				if (!enabled)
+					return false;
+				if (enabled && path.length > 0) {
+					let {jsonMap} = rootMap.get(array);
+					if (!jsonMap.has(array[path[0]]))
+						jsonMap.set(array[path[0]], stringify(array[path[0]]));
+				}
+				return true;
+			}
+		}
+
+		function proxifyRow(row) {
+			let enabled = false;
+			let handler = {
+				get(_target, property,) {
+					if (property === 'save')
+						return saveRow.bind(null,row);
+					else if (property === 'insert')
+						return insertRow.bind(null,row);
+					else
+						return Reflect.get(...arguments);
 				}
 			};
-			return new Proxy(result, handler);
+			let innerProxy =  new Proxy(row, handler);
+			let rowProxy = onChange(innerProxy, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
+			rootMap.set(row, {jsonMap: new Map()});
+			enabled = true;
+			return rowProxy;
+
+			function onValidate() {
+				if (!enabled)
+					return false;
+				let root = rootMap.get(row);
+				if (!root.json)
+					root.json = stringify(row);
+				return true;
+			}
 		}
+
+		async function getMeta() {
+			if (meta)
+				return meta;
+			// eslint-disable-next-line no-undef
+			var headers = new Headers();
+			headers.append('Content-Type', 'application/json');
+			// eslint-disable-next-line no-undef
+			let request = new Request(`${url}`, {method: 'GET', headers});
+			// eslint-disable-next-line no-undef
+			let response = await fetch(request);
+			if (response.status === 200) {
+				meta = await response.json();
+				return meta;
+			}
+			else {
+				let msg = response.text && await response.text() || `Status ${response.status} from server`;
+				let e = new Error(msg);
+				// @ts-ignore
+				e.status = response.status;
+				throw e;
+			}
+		}
+
+		async function save(itemOrArray) {
+			if (Array.isArray(itemOrArray))
+				return saveArray(itemOrArray);
+			else
+				return saveRow(itemOrArray);
+		}
+
+		async function saveArray(array) {
+			let {original, jsonMap} = rootMap.get(array);
+			let meta = await getMeta();
+			let {added, removed, changed} = difference(original, new Set(array), jsonMap);
+			let insertPatch = createPatch([], added, meta);
+			let deletePatch = createPatch(removed, [], meta);
+			let updatePatch = createPatch(changed.map(x => JSON.parse(jsonMap.get(x))), changed, meta);
+			let patch = [...insertPatch, ...updatePatch, ...deletePatch];
+
+			let body = JSON.stringify(patch);
+			// eslint-disable-next-line no-undef
+			var headers = new Headers();
+			headers.append('Content-Type', 'application/json');
+			// eslint-disable-next-line no-undef
+			let request = new Request(`${url}`, {method: 'PATCH', headers, body});
+			// eslint-disable-next-line no-undef
+			let response = await fetch(request);
+			if (response.status >= 200 && response.status < 300 ) {
+				rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
+				return;
+			}
+			else {
+				let msg = response.text && await response.text() || `Status ${response.status} from server`;
+				let e = new Error(msg);
+				// @ts-ignore
+				e.status = response.status;
+				throw e;
+			}
+			//todo
+			//refresh changed and inserted with data from server with original strategy
+		}
+		async function insertArray(array) {
+			let meta = await getMeta();
+			let insertPatch = createPatch([], array, meta);
+			let body = JSON.stringify(insertPatch);
+			// eslint-disable-next-line no-undef
+			var headers = new Headers();
+			headers.append('Content-Type', 'application/json');
+			// eslint-disable-next-line no-undef
+			let request = new Request(`${url}`, {method: 'PATCH', headers, body});
+			// eslint-disable-next-line no-undef
+			let response = await fetch(request);
+			if (response.status >= 200 && response.status < 300 ) {
+				rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
+				return;
+			}
+			else {
+				let msg = response.text && await response.text() || `Status ${response.status} from server`;
+				let e = new Error(msg);
+				// @ts-ignore
+				e.status = response.status;
+				throw e;
+			}
+		}
+
+		function setMapValue(rowsMap, keys, row) {
+			let keyValue = row[keys[0]];
+			if (keys.length > 1) {
+				let subMap = rowsMap.get(keyValue);
+				if (!subMap) {
+					subMap = new Map();
+					rowsMap.set(keyValue, subMap);
+				}
+				setMapValue(subMap, keys.slice(1), row);
+			}
+			else
+				rowsMap.set(keyValue, row);
+		}
+
+		function getMapValue(rowsMap, keys, row) {
+			let keyValue = row[keys[0]];
+			if (keys.length > 1)
+				return getMapValue(rowsMap.get(keyValue), keys.slice(1));
+			else
+				rowsMap.get(keyValue);
+		}
+
+		async function findArray(array) {
+			if (array.length === 0)
+				throw new Error('Find() must have at least one row');
+			let meta = await getMeta();
+			let filter = c.filters;
+			let rowsMap = new Map();
+			for(let rowIndex = 0; rowIndex < array.length; rowIndex++) {
+				let row = array[rowIndex];
+				let keyFilter = c.filters;
+				for (let i = 0; i < meta.keys.length; i++) {
+					let keyName = meta.keys[i];
+					let keyValue = row[keyName];
+					keyFilter = keyFilter.and(_table[keyName].eq(keyValue));
+				}
+				setMapValue(rowsMap, meta.keys, row, rowIndex);
+				filter = filter.or(keyFilter);
+			}
+			let args = [filter].concat(Array.prototype.slice.call(arguments).slice(1));
+			let rows = await getManyDtoCore.apply(null, args);
+			for(let i = 0; i < rows.length; i++) {
+				let row = rows[i];
+				let originalIndex = getMapValue(rowsMap, meta.keys, row);
+				array[originalIndex] = row;
+			}
+			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
+		}
+
+		async function insertRow(row) {
+			let {url} = rootMap.get(row);
+			let meta = await getMeta(url);
+			let patch = createPatch([], [row], meta);
+			let body = JSON.stringify(patch);
+			// eslint-disable-next-line no-undef
+			var headers = new Headers();
+			headers.append('Content-Type', 'application/json');
+			// eslint-disable-next-line no-undef
+			let request = new Request(`${url}`, {method: 'PATCH', headers, body});
+			// eslint-disable-next-line no-undef
+			let response = await fetch(request);
+			if (response.status >= 200 && response.status < 300 ) {
+				rootMap.set(row, {url});
+				return;
+			}
+			else {
+				let msg = response.text && await response.text() || `Status ${response.status} from server`;
+				let e = new Error(msg);
+				// @ts-ignore
+				e.status = response.status;
+				throw e;
+			}
+			//todo
+			//refresh changed and inserted with data from server with original strategy
+		}
+		async function saveRow(row) {
+			let {json} = rootMap.get(row);
+			if (!json)
+				return;
+			let meta = await getMeta(url);
+			let patch = createPatch([JSON.parse(json)], [row], meta);
+			let body = JSON.stringify(patch);
+			// eslint-disable-next-line no-undef
+			var headers = new Headers();
+			headers.append('Content-Type', 'application/json');
+			// eslint-disable-next-line no-undef
+			let request = new Request(`${url}`, {method: 'PATCH', headers, body});
+			// eslint-disable-next-line no-undef
+			let response = await fetch(request);
+			if (response.status >= 200 && response.status < 300 ) {
+				rootMap.set(row, {url});
+				return;
+			}
+			else {
+				let msg = response.text && await response.text() || `Status ${response.status} from server`;
+				let e = new Error(msg);
+				// @ts-ignore
+				e.status = response.status;
+				throw e;
+			}
+			//todo
+			//refresh changed and inserted with data from server with original strategy
+		}
+
+	}
+
+	return c;
+
+}
+
+function difference(setA, setB, jsonMap) {
+	let removed = new Set(setA);
+	let added = [];
+	let changed = [];
+	for (let elem of setB) {
+		if (!setA.has(elem))
+			added.push(elem);
+		else {
+			removed.delete(elem);
+			if (jsonMap.get(elem))
+				changed.push(elem);
+		}
+	}
+
+	return {added, removed: Array.from(removed), changed};
+}
+
+function column(path, ...previous) {
+	function c() {
+		let args = previous.concat(Array.prototype.slice.call(arguments));
+		let result = {path, args};
 		let handler = {
 			get(_target, property) {
 				if (property === 'toJSON')
-					return Reflect.get(...arguments);
-				else if (property in c)
+					return result.toJSON;
+				if (property in result)
 					return Reflect.get(...arguments);
 				else
-					return column(path + '.' + property);
+					return column(property, result);
+
 			}
-
 		};
-		return new Proxy(c, handler);
-
+		return new Proxy(result, handler);
 	}
-	return c;
+	let handler = {
+		get(_target, property) {
+			if (property === 'toJSON')
+				return Reflect.get(...arguments);
+			else if (property in c)
+				return Reflect.get(...arguments);
+			else
+				return column(path + '.' + property);
+		}
+
+	};
+	return new Proxy(c, handler);
+
 }
 
 
