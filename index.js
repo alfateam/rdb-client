@@ -4,16 +4,16 @@ let stringify = require('./stringify');
 let rootMap = new WeakMap();
 
 function rdbClient() {
-	let c = rdbClient;
-	c.createPatch = createPatch; //keep for legacy reasons
-	c.table = table;
-	c.or = column('or');
-	c.and = column('and');
-	c.not = column('not');
-	c.filter = {
-		or: c.or,
-		and: c.and,
-		not: c.not,
+	let client = rdbClient;
+	client.createPatch = createPatch; //keep for legacy reasons
+	client.table = table;
+	client.or = column('or');
+	client.and = column('and');
+	client.not = column('not');
+	client.filter = {
+		or: client.or,
+		and: client.and,
+		not: client.not,
 	};
 
 	function table(url) {
@@ -83,7 +83,7 @@ function rdbClient() {
 						return saveArray.bind(null,array);
 					else if (property === 'insert')
 						return insertArray.bind(null,array);
-					else if (property === 'find')
+					else if (property === 'get')
 						return findArray.bind(null,array);
 					else
 						return Reflect.get(...arguments);
@@ -248,11 +248,11 @@ function rdbClient() {
 			if (array.length === 0)
 				throw new Error('Find() must have at least one row');
 			let meta = await getMeta();
-			let filter = c.filters;
+			let filter = client.filters;
 			let rowsMap = new Map();
 			for(let rowIndex = 0; rowIndex < array.length; rowIndex++) {
 				let row = array[rowIndex];
-				let keyFilter = c.filters;
+				let keyFilter = client.filters;
 				for (let i = 0; i < meta.keys.length; i++) {
 					let keyName = meta.keys[i];
 					let keyValue = row[keyName];
@@ -328,7 +328,7 @@ function rdbClient() {
 
 	}
 
-	return c;
+	return client;
 
 }
 
