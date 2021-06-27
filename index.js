@@ -222,7 +222,7 @@ function rdbClient() {
 			}
 		}
 
-		function setMapValue(rowsMap, keys, row) {
+		function setMapValue(rowsMap, keys, row, index) {
 			let keyValue = row[keys[0]];
 			if (keys.length > 1) {
 				let subMap = rowsMap.get(keyValue);
@@ -230,10 +230,10 @@ function rdbClient() {
 					subMap = new Map();
 					rowsMap.set(keyValue, subMap);
 				}
-				setMapValue(subMap, keys.slice(1), row);
+				setMapValue(subMap, keys.slice(1), row, index);
 			}
 			else
-				rowsMap.set(keyValue, row);
+				rowsMap.set(keyValue, index);
 		}
 
 		function getMapValue(rowsMap, keys, row) {
@@ -241,7 +241,7 @@ function rdbClient() {
 			if (keys.length > 1)
 				return getMapValue(rowsMap.get(keyValue), keys.slice(1));
 			else
-				rowsMap.get(keyValue);
+				return rowsMap.get(keyValue);
 		}
 
 		async function findArray(array) {
