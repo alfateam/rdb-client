@@ -2,6 +2,7 @@ const onChange = require('on-change');
 let createPatch = require('./createPatch');
 let stringify = require('./stringify');
 let rootMap = new WeakMap();
+let proxyRootMap = new WeakMap();
 
 function rdbClient() {
 	let client = rdbClient;
@@ -76,7 +77,7 @@ function rdbClient() {
 		}
 
 		function proxifyArray(array) {
-			let enabled = false;
+			// let enabled = false;
 			let handler = {
 				get(_target, property,) {
 					if (property === 'save')
@@ -94,12 +95,15 @@ function rdbClient() {
 
 			let arrayProxy =  onChange(innerProxy, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
 			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
-			enabled = true;
+			let proxyRootObject = {arrayProxy, enabled: true};
+			proxyRootMap.set(array, proxyRootObject);
+			// enabled = true;
 			return arrayProxy;
 
 			function onValidate(path) {
+				let {enabled} = proxyRootObject;
 				if (!enabled)
-					return false;
+					return true;
 				if (enabled && path.length > 0) {
 					let {jsonMap} = rootMap.get(array);
 					if (!jsonMap.has(array[path[0]]))
@@ -263,14 +267,18 @@ function rdbClient() {
 			}
 			let args = [filter].concat(Array.prototype.slice.call(arguments).slice(1));
 			let rows = await getManyDtoCore.apply(null, args);
+			let proxyRootObject = proxyRootMap.get(array);
+			proxyRootObject.enabled = false;
+			let arrayProxy = proxyRootObject.arrayProxy;
 			for(let i = 0; i < rows.length; i++) {
 				let row = rows[i];
 				let originalIndex = getMapValue(rowsMap, meta.keys, row);
 				console.log(originalIndex);
 				console.log(row.sendersReference);
-				array[originalIndex] = row;
+				arrayProxy[originalIndex] = row;
 			}
 			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
+			proxyRootObject.enabled = true;
 		}
 
 		async function insertRow(row) {
