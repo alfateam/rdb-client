@@ -2,7 +2,6 @@ const onChange = require('on-change');
 let createPatch = require('./createPatch');
 let stringify = require('./stringify');
 let rootMap = new WeakMap();
-let proxyRootMap = new WeakMap();
 
 function rdbClient() {
 	let client = rdbClient;
@@ -77,7 +76,7 @@ function rdbClient() {
 		}
 
 		function proxifyArray(array) {
-			// let enabled = false;
+			let enabled = false;
 			let handler = {
 				get(_target, property,) {
 					if (property === 'save')
@@ -92,16 +91,12 @@ function rdbClient() {
 
 			};
 			let innerProxy =  new Proxy(array, handler);
-
 			let arrayProxy =  onChange(innerProxy, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
 			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
-			let proxyRootObject = {arrayProxy, enabled: true};
-			proxyRootMap.set(array, proxyRootObject);
-			// enabled = true;
+			enabled = true;
 			return arrayProxy;
 
 			function onValidate(path) {
-				let {enabled} = proxyRootObject;
 				if (!enabled)
 					return true;
 				if (enabled && path.length > 0) {
@@ -250,7 +245,7 @@ function rdbClient() {
 
 		async function findArray(array) {
 			if (array.length === 0)
-				throw new Error('Find() must have at least one row');
+				return proxify([]);
 			let meta = await getMeta();
 			let filter = client.filter;
 			let rowsMap = new Map();
@@ -267,18 +262,14 @@ function rdbClient() {
 			}
 			let args = [filter].concat(Array.prototype.slice.call(arguments).slice(1));
 			let rows = await getManyDtoCore.apply(null, args);
-			let proxyRootObject = proxyRootMap.get(array);
-			proxyRootObject.enabled = false;
-			let arrayProxy = proxyRootObject.arrayProxy;
+			let result = [];
+			result.length = rows.length;
 			for(let i = 0; i < rows.length; i++) {
 				let row = rows[i];
 				let originalIndex = getMapValue(rowsMap, meta.keys, row);
-				console.log(originalIndex);
-				console.log(row.sendersReference);
-				arrayProxy[originalIndex] = row;
+				result[originalIndex] = row;
 			}
-			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
-			proxyRootObject.enabled = true;
+			return proxifyArray(result);
 		}
 
 		async function insertRow(row) {
