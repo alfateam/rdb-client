@@ -266,6 +266,8 @@ function rdbClient() {
 			for(let i = 0; i < rows.length; i++) {
 				let row = rows[i];
 				let originalIndex = getMapValue(rowsMap, meta.keys, row);
+				console.log(originalIndex);
+				console.log(row.sendersReference);
 				array[originalIndex] = row;
 			}
 			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
