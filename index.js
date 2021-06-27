@@ -248,11 +248,11 @@ function rdbClient() {
 			if (array.length === 0)
 				throw new Error('Find() must have at least one row');
 			let meta = await getMeta();
-			let filter = client.filters;
+			let filter = client.filter;
 			let rowsMap = new Map();
 			for(let rowIndex = 0; rowIndex < array.length; rowIndex++) {
 				let row = array[rowIndex];
-				let keyFilter = client.filters;
+				let keyFilter = client.filter;
 				for (let i = 0; i < meta.keys.length; i++) {
 					let keyName = meta.keys[i];
 					let keyValue = row[keyName];
