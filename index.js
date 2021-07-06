@@ -280,7 +280,7 @@ function rdbClient() {
 
 		async function findArray(array) {
 			if (array.length === 0)
-				return proxify([]);
+				return;
 			let meta = await getMeta();
 			let filter = client.filter;
 			let rowsMap = new Map();
@@ -297,14 +297,11 @@ function rdbClient() {
 			}
 			let args = [filter].concat(Array.prototype.slice.call(arguments).slice(1));
 			let rows = await getManyDtoCore.apply(null, args);
-			let result = [];
-			result.length = rows.length;
 			for(let i = 0; i < rows.length; i++) {
 				let row = rows[i];
 				let originalIndex = getMapValue(rowsMap, meta.keys, row);
-				result[originalIndex] = row;
+				array[originalIndex] = row;
 			}
-			return proxifyArray(result);
 		}
 
 		async function insertRow(row) {
