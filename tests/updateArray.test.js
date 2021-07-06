@@ -24,3 +24,18 @@ test('update nested composite pk', async (done) => {
 	expect(updatePatch).toEqual([{'op': 'replace', 'path': '/[1]/lines/[1,23]/foo', 'value': 'changed', 'oldValue': 'original'}]);
 	done();
 });
+
+test('clearChanges',  () => {
+	let client = require('../index');
+	let table = client.table('order');
+	let rows = table.proxify([{id: 1}, {id: 2, bar: 'original'}, {id: 3}]);
+	let expected = JSON.parse(JSON.stringify([{id: 1}, {id: 3}, {id: 2, bar: 'original'}]));
+	rows[1].bar = 'foo';
+	rows.shift();
+	rows.push({id: 4});
+	rows.sort((a,b) => {
+		return b.id - a.id;
+	});
+	rows.clearChanges();
+	expect(JSON.parse(JSON.stringify(rows))).toEqual(expected);
+});

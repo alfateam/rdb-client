@@ -83,6 +83,8 @@ function rdbClient() {
 						return saveArray.bind(null,array);
 					else if (property === 'insert')
 						return insertArray.bind(null,array);
+					else if (property === 'clearChanges')
+						return clearChangesArray.bind(null,array);
 					else
 						return Reflect.get(...arguments);
 				}
@@ -195,6 +197,37 @@ function rdbClient() {
 			//todo
 			//refresh changed and inserted with data from server with original strategy
 		}
+
+		async function clearChangesArray(array) {
+			let {original, jsonMap} = rootMap.get(array);
+			let {added, removed, changed} = difference(original, new Set(array), jsonMap);
+			added = new Set(added);
+			removed = new Set(removed);
+			changed = new Set(changed);
+			for (let i = 0; i < array.length; i++) {
+				let row = array[i];
+				if (added.has(row)) {
+					array.splice(i, 1);
+					i--;
+				}
+				else if (changed.has(row)) {
+					array[i] = JSON.parse(jsonMap.get(row));
+				}
+			}
+			if (removed.size > 0) {
+				let i = 0;
+				for(let row of original) {
+					if (removed.has(row)) {
+						if (jsonMap.has(row))
+							row = JSON.parse(jsonMap.get(row));
+						array.splice(i, 0, row);
+					}
+					i++;
+				}
+			}
+			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
+		}
+
 		async function insertArray(array) {
 			let meta = await getMeta();
 			let insertPatch = createPatch([], array, meta);
