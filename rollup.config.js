@@ -7,5 +7,6 @@ export default {
 		file: 'rdb-client.esm.js',
 		format: 'esm'
 	},
-	plugins: [commonjs(), nodeResolve({browser: true})]
+	plugins: [commonjs(), nodeResolve({browser: true})],
+	external: ['vue']
 };
