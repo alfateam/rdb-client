@@ -2,17 +2,6 @@ let onChange = require('on-change');
 let createPatch = require('./createPatch');
 let stringify = require('./stringify');
 let rootMap = new WeakMap();
-let reactive;
-
-function tryGetVue() {
-	try {
-		let {reactive: _reactive} = require('vue');
-		reactive = _reactive;
-	}
-	catch(e) {
-		console.log('no vue');
-	}
-}
 
 function rdbClient() {
 	let client = rdbClient;
@@ -89,8 +78,6 @@ function rdbClient() {
 		function proxifyArray(array) {
 			if (client.reactive)
 				array = client.reactive(array);
-			else if (reactive)
-				array = reactive(array);
 			let enabled = false;
 			let handler = {
 				get(_target, property,) {
@@ -427,5 +414,4 @@ function column(path, ...previous) {
 
 }
 
-tryGetVue();
 module.exports = rdbClient();

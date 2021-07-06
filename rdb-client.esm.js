@@ -1,5 +1,3 @@
-import require$$3 from 'vue';
-
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
 var constants = {
@@ -2010,17 +2008,6 @@ let onChange = onChange_1;
 let createPatch = createPatch$1;
 let stringify = stringify_1;
 let rootMap = new WeakMap();
-let reactive;
-
-function tryGetVue() {
-	try {
-		let {reactive: _reactive} = require$$3;
-		reactive = _reactive;
-	}
-	catch(e) {
-		console.log('no vue');
-	}
-}
 
 function rdbClient() {
 	let client = rdbClient;
@@ -2097,8 +2084,6 @@ function rdbClient() {
 		function proxifyArray(array) {
 			if (client.reactive)
 				array = client.reactive(array);
-			else if (reactive)
-				array = reactive(array);
 			let enabled = false;
 			let handler = {
 				get(_target, property,) {
@@ -2435,7 +2420,6 @@ function column(path, ...previous) {
 
 }
 
-tryGetVue();
 var rdbClient_1 = rdbClient();
 
 export default rdbClient_1;
