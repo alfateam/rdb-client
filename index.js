@@ -219,27 +219,6 @@ function rdbClient() {
 			}
 		}
 
-		function setMapValue(rowsMap, keys, row, index) {
-			let keyValue = row[keys[0]];
-			if (keys.length > 1) {
-				let subMap = rowsMap.get(keyValue);
-				if (!subMap) {
-					subMap = new Map();
-					rowsMap.set(keyValue, subMap);
-				}
-				setMapValue(subMap, keys.slice(1), row, index);
-			}
-			else
-				rowsMap.set(keyValue, index);
-		}
-
-		function getMapValue(rowsMap, keys, row) {
-			let keyValue = row[keys[0]];
-			if (keys.length > 1)
-				return getMapValue(rowsMap.get(keyValue), keys.slice(1));
-			else
-				return rowsMap.get(keyValue);
-		}
 
 		async function insertRow(row) {
 			let {url} = rootMap.get(row);
