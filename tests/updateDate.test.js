@@ -5,9 +5,7 @@ test('updateDate', async (done) => {
 	let aIso = toIsoString(a.date);
 	let bIso = toIsoString(b.date);
 	let updatePatch = createPatch(a, b);
-	console.log(updatePatch);
 	expect(updatePatch).toEqual([{'op': 'replace', 'path': '/date', 'value': bIso, 'oldValue': aIso}]);
-	console.log(a);
 	done();
 });
 
