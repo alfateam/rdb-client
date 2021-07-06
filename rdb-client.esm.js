@@ -2014,13 +2014,8 @@ let reactive;
 
 function tryGetVue() {
 	try {
-		let vue = require$$3;
-		if (vue)
-			console.log('got vue');
-		if (vue && vue.reactive) {
-			console.log('got reactive');
-			reactive = vue.reactive;
-		}
+		let {reactive: _reactive} = require$$3;
+		reactive = _reactive;
 	}
 	catch(e) {
 		console.log('no vue');
