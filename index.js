@@ -76,6 +76,8 @@ function rdbClient() {
 		}
 
 		function proxifyArray(array) {
+			if (client.reactive)
+				array = client.reactive(array);
 			let enabled = false;
 			let handler = {
 				get(_target, property,) {
