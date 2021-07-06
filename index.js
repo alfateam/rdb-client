@@ -83,8 +83,6 @@ function rdbClient() {
 						return saveArray.bind(null,array);
 					else if (property === 'insert')
 						return insertArray.bind(null,array);
-					else if (property === 'get')
-						return findArray.bind(null,array);
 					else
 						return Reflect.get(...arguments);
 				}
@@ -241,35 +239,6 @@ function rdbClient() {
 				return getMapValue(rowsMap.get(keyValue), keys.slice(1));
 			else
 				return rowsMap.get(keyValue);
-		}
-
-		async function findArray(array) {
-			if (array.length === 0)
-				return proxify([]);
-			let meta = await getMeta();
-			let filter = client.filter;
-			let rowsMap = new Map();
-			for(let rowIndex = 0; rowIndex < array.length; rowIndex++) {
-				let row = array[rowIndex];
-				let keyFilter = client.filter;
-				for (let i = 0; i < meta.keys.length; i++) {
-					let keyName = meta.keys[i];
-					let keyValue = row[keyName];
-					keyFilter = keyFilter.and(_table[keyName].eq(keyValue));
-				}
-				setMapValue(rowsMap, meta.keys, row, rowIndex);
-				filter = filter.or(keyFilter);
-			}
-			let args = [filter].concat(Array.prototype.slice.call(arguments).slice(1));
-			let rows = await getManyDtoCore.apply(null, args);
-			let result = [];
-			result.length = rows.length;
-			for(let i = 0; i < rows.length; i++) {
-				let row = rows[i];
-				let originalIndex = getMapValue(rowsMap, meta.keys, row);
-				result[originalIndex] = row;
-			}
-			return proxifyArray(result);
 		}
 
 		async function insertRow(row) {
