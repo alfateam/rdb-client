@@ -2068,7 +2068,6 @@ function rdbClient() {
 			else {
 				let msg = response.json && await response.json() || `Status ${response.status} from server`;
 				let e = new Error(msg);
-				// @ts-ignore
 				e.status = response.status;
 				throw e;
 			}
@@ -2091,8 +2090,10 @@ function rdbClient() {
 						return saveArray.bind(null,array);
 					else if (property === 'insert')
 						return insertArray.bind(null,array);
-					else if (property === 'get')
-						return findArray.bind(null,array);
+					else if (property === 'delete')
+						return deleteArray.bind(null,array);
+					else if (property === 'refresh')
+						return refreshArray.bind(null,array);
 					else if (property === 'clearChanges')
 						return clearChangesArray.bind(null,array);
 					else
@@ -2163,7 +2164,6 @@ function rdbClient() {
 			else {
 				let msg = response.text && await response.text() || `Status ${response.status} from server`;
 				let e = new Error(msg);
-				// @ts-ignore
 				e.status = response.status;
 				throw e;
 			}
@@ -2200,12 +2200,9 @@ function rdbClient() {
 			else {
 				let msg = response.text && await response.text() || `Status ${response.status} from server`;
 				let e = new Error(msg);
-				// @ts-ignore
 				e.status = response.status;
 				throw e;
 			}
-			//todo
-			//refresh changed and inserted with data from server with original strategy
 		}
 
 		async function clearChangesArray(array) {
@@ -2256,7 +2253,30 @@ function rdbClient() {
 			else {
 				let msg = response.text && await response.text() || `Status ${response.status} from server`;
 				let e = new Error(msg);
-				// @ts-ignore
+				e.status = response.status;
+				throw e;
+			}
+		}
+
+		async function deleteArray(array) {
+			let meta = await getMeta();
+			let patch = createPatch(array, [], meta);
+			let body = JSON.stringify(patch);
+			// eslint-disable-next-line no-undef
+			var headers = new Headers();
+			headers.append('Content-Type', 'application/json');
+			// eslint-disable-next-line no-undef
+			let request = new Request(`${url}`, {method: 'PATCH', headers, body});
+			// eslint-disable-next-line no-undef
+			let response = await fetch(request);
+			if (response.status >= 200 && response.status < 300 ) {
+				array.length = 0;
+				rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
+				return;
+			}
+			else {
+				let msg = response.text && await response.text() || `Status ${response.status} from server`;
+				let e = new Error(msg);
 				e.status = response.status;
 				throw e;
 			}
@@ -2284,7 +2304,7 @@ function rdbClient() {
 				return rowsMap.get(keyValue);
 		}
 
-		async function findArray(array) {
+		async function refreshArray(array) {
 			if (array.length === 0)
 				return;
 			let meta = await getMeta();
@@ -2303,11 +2323,24 @@ function rdbClient() {
 			}
 			let args = [filter].concat(Array.prototype.slice.call(arguments).slice(1));
 			let rows = await getManyDtoCore.apply(null, args);
+			let removedIndexes = new Set();
+			if (array.length !== rows.length)
+				for(var i = 0; i < array.length; i++) {
+					removedIndexes.add(i);
+				}
 			for(let i = 0; i < rows.length; i++) {
 				let row = rows[i];
 				let originalIndex = getMapValue(rowsMap, meta.keys, row);
+				if (array.length !== rows.length)
+					removedIndexes.delete(originalIndex);
 				array[originalIndex] = row;
 			}
+			let offset = 0;
+			for(let i of removedIndexes) {
+				array.splice(i + offset , 1);
+				offset--;
+			}
+			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
 		}
 
 		async function insertRow(row) {
@@ -2329,12 +2362,9 @@ function rdbClient() {
 			else {
 				let msg = response.text && await response.text() || `Status ${response.status} from server`;
 				let e = new Error(msg);
-				// @ts-ignore
 				e.status = response.status;
 				throw e;
 			}
-			//todo
-			//refresh changed and inserted with data from server with original strategy
 		}
 		async function saveRow(row) {
 			let {json} = rootMap.get(row);
@@ -2361,14 +2391,11 @@ function rdbClient() {
 				e.status = response.status;
 				throw e;
 			}
-			//todo
-			//refresh changed and inserted with data from server with original strategy
 		}
 
 	}
 
 	return client;
-
 }
 
 function difference(setA, setB, jsonMap) {
