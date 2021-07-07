@@ -2675,7 +2675,7 @@ function rdbClient() {
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
-			let response = await sendRequest(new Request(`${url}`, {method: 'POST', headers, body}));
+			let response = await sendRequest({url, init: {method: 'POST', headers, body}});
 			if (response.status === 200) {
 				return await response.json();
 			}
@@ -2768,7 +2768,7 @@ function rdbClient() {
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
-			let request = new Request(`${url}`, {method: 'GET', headers});
+			let request = {url, init: {method: 'GET', headers}};
 			let response = await sendRequest(request);
 			if (response.status === 200) {
 				meta = await response.json();
@@ -2782,14 +2782,14 @@ function rdbClient() {
 			}
 		}
 
-		async function beforeResponse(response, {request, unusedRequest, attempts}) {
+		async function beforeResponse(response, {url, init, attempts}) {
 			if (!client.beforeResponse)
 				return response;
 
 			let shouldRetry;
-			await client.beforeResponse(response, {retry, attempts, request});
+			await client.beforeResponse(response, {retry, attempts, request: init});
 			if (shouldRetry)
-				return sendRequest(unusedRequest, {attempts: ++attempts});
+				return sendRequest({url, init}, {attempts: ++attempts});
 			return response;
 
 			function retry() {
@@ -2797,17 +2797,14 @@ function rdbClient() {
 			}
 		}
 
-		async function sendRequest(request, {attempts = 0} = {}) {
+		async function sendRequest({url, init}, {attempts = 0} = {}) {
 			if (client.beforeRequest) {
-				let init = await client.beforeRequest(request);
-				if (init)
-					// eslint-disable-next-line no-undef
-					request = new Request(request, init);
+				init = await client.beforeRequest(init) || init;
 			}
 			// eslint-disable-next-line no-undef
-			let unusedRequest = new Request(request);
+			let request = new Request(url, init);
 			// eslint-disable-next-line no-undef
-			return beforeResponse(await fetch(request), {request, unusedRequest, attempts});
+			return beforeResponse(await fetch(request), {url, init, attempts});
 		}
 
 		async function save(itemOrArray) {
@@ -2831,7 +2828,7 @@ function rdbClient() {
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
-			let request = new Request(`${url}`, {method: 'PATCH', headers, body});
+			let request = {url, init: {method: 'PATCH', headers, body}};
 			let response = await sendRequest(request);
 			if (response.status >= 200 && response.status < 300 ) {
 				rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
@@ -2885,7 +2882,7 @@ function rdbClient() {
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
-			let request = new Request(`${url}`, {method: 'PATCH', headers, body});
+			let request = {url, init:  {method: 'PATCH', headers, body}};
 			// eslint-disable-next-line no-undef
 			let response = await sendRequest(request);
 			if (response.status >= 200 && response.status < 300 ) {
@@ -2910,7 +2907,7 @@ function rdbClient() {
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
-			let request = new Request(`${url}`, {method: 'PATCH', headers, body});
+			let request = {url, init: {method: 'PATCH', headers, body}};
 			let response = await sendRequest(request);
 			if (response.status >= 200 && response.status < 300 ) {
 				array.length = 0;
@@ -2995,7 +2992,7 @@ function rdbClient() {
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
-			let request = new Request(`${url}`, {method: 'PATCH', headers, body});
+			let request = {url, init: {method: 'PATCH', headers, body}};
 			let response = await sendRequest(request);
 			if (response.status >= 200 && response.status < 300 ) {
 				rootMap.set(row, {url});
@@ -3019,7 +3016,7 @@ function rdbClient() {
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
-			let request = new Request(`${url}`, {method: 'PATCH', headers, body});
+			let request = {url, init: {method: 'PATCH', headers, body}};
 			let response = await sendRequest(request);
 			if (response.status >= 200 && response.status < 300 ) {
 				rootMap.set(row, {url});
