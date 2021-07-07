@@ -178,7 +178,7 @@ function rdbClient() {
 			}
 		}
 
-		async function sendRequest(request, {attempts = 0}) {
+		async function sendRequest(request, {attempts = 0} = {}) {
 			if (client.beforeRequest) {
 				let init = await client.beforeRequest(request);
 				if (init)
