@@ -170,7 +170,7 @@ function rdbClient() {
 				return saveRow(itemOrArray);
 		}
 
-		async function saveArray(array) {
+		async function saveArray(array, options) {
 			let {original, jsonMap} = rootMap.get(array);
 			let meta = await getMeta();
 			let {added, removed, changed} = difference(original, new Set(array), jsonMap);
@@ -179,7 +179,7 @@ function rdbClient() {
 			let updatePatch = createPatch(changed.map(x => JSON.parse(jsonMap.get(x))), changed, meta);
 			let patch = [...insertPatch, ...updatePatch, ...deletePatch];
 
-			let body = JSON.stringify(patch);
+			let body = JSON.stringify({patch, options});
 			// eslint-disable-next-line no-undef
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
@@ -254,12 +254,12 @@ function rdbClient() {
 			}
 		}
 
-		async function deleteArray(array) {
+		async function deleteArray(array, options) {
 			if (array.length === 0)
 				return;
 			let meta = await getMeta();
 			let patch = createPatch(array, [], meta);
-			let body = JSON.stringify(patch);
+			let body = JSON.stringify({patch, options});
 			// eslint-disable-next-line no-undef
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
@@ -341,11 +341,11 @@ function rdbClient() {
 			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
 		}
 
-		async function insertRow(row) {
+		async function insertRow(row, options) {
 			let {url} = rootMap.get(row);
 			let meta = await getMeta(url);
 			let patch = createPatch([], [row], meta);
-			let body = JSON.stringify(patch);
+			let body = JSON.stringify({patch, options});
 			// eslint-disable-next-line no-undef
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
@@ -364,13 +364,13 @@ function rdbClient() {
 				throw e;
 			}
 		}
-		async function saveRow(row) {
+		async function saveRow(row, options) {
 			let {json} = rootMap.get(row);
 			if (!json)
 				return;
 			let meta = await getMeta(url);
 			let patch = createPatch([JSON.parse(json)], [row], meta);
-			let body = JSON.stringify(patch);
+			let body = JSON.stringify({patch, options});
 			// eslint-disable-next-line no-undef
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
