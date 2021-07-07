@@ -230,6 +230,8 @@ function rdbClient() {
 		}
 
 		async function insertArray(array) {
+			if (array.length === 0)
+				return;
 			let meta = await getMeta();
 			let insertPatch = createPatch([], array, meta);
 			let body = JSON.stringify(insertPatch);
@@ -253,6 +255,8 @@ function rdbClient() {
 		}
 
 		async function deleteArray(array) {
+			if (array.length === 0)
+				return;
 			let meta = await getMeta();
 			let patch = createPatch(array, [], meta);
 			let body = JSON.stringify(patch);
