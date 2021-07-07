@@ -2782,14 +2782,14 @@ function rdbClient() {
 			}
 		}
 
-		async function beforeResponse(request, response, attempts = 0) {
+		async function beforeResponse(response, {request, unusedRequest, attempts}) {
 			if (!client.beforeResponse)
 				return response;
 
 			let shouldRetry;
-			await client.beforeResponse(response, retry, attempts);
+			await client.beforeResponse(response, {retry, attempts, request});
 			if (shouldRetry)
-				return sendRequest(request, ++attempts);
+				return sendRequest(unusedRequest, {attempts: ++attempts});
 			return response;
 
 			function retry() {
@@ -2797,7 +2797,7 @@ function rdbClient() {
 			}
 		}
 
-		async function sendRequest(request, attempts = 0) {
+		async function sendRequest(request, {attempts = 0}) {
 			if (client.beforeRequest) {
 				let init = await client.beforeRequest(request);
 				if (init)
@@ -2805,7 +2805,9 @@ function rdbClient() {
 					request = new Request(request, init);
 			}
 			// eslint-disable-next-line no-undef
-			return beforeResponse(request, await fetch(request), attempts);
+			let unusedRequest = new Request(request);
+			// eslint-disable-next-line no-undef
+			return beforeResponse(await fetch(request), {request, unusedRequest, attempts});
 		}
 
 		async function save(itemOrArray) {
