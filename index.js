@@ -1,11 +1,14 @@
 let onChange = require('on-change');
 let createPatch = require('./createPatch');
 let stringify = require('./stringify');
+require('isomorphic-fetch');
 let rootMap = new WeakMap();
 
 function rdbClient() {
 	let client = rdbClient;
 	client.createPatch = createPatch; //keep for legacy reasons
+	//beforeRequest
+	//beforeResponse
 	client.table = table;
 	client.or = column('or');
 	client.and = column('and');
@@ -53,9 +56,7 @@ function rdbClient() {
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
-			let request = new Request(`${url}`, {method: 'POST', headers, body});
-			// eslint-disable-next-line no-undef
-			let response = await fetch(request);
+			let response = await sendRequest(new Request(`${url}`, {method: 'POST', headers, body}));
 			if (response.status === 200) {
 				return await response.json();
 			}
@@ -149,8 +150,7 @@ function rdbClient() {
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
 			let request = new Request(`${url}`, {method: 'GET', headers});
-			// eslint-disable-next-line no-undef
-			let response = await fetch(request);
+			let response = await sendRequest(request);
 			if (response.status === 200) {
 				meta = await response.json();
 				return meta;
@@ -161,6 +161,32 @@ function rdbClient() {
 				e.status = response.status;
 				throw e;
 			}
+		}
+
+		async function beforeResponse(request, response, attempts = 0) {
+			if (!client.beforeResponse)
+				return response;
+
+			let shouldRetry;
+			await client.beforeResponse(response, retry, attempts);
+			if (shouldRetry)
+				return sendRequest(request, ++attempts);
+			return response;
+
+			function retry() {
+				shouldRetry = true;
+			}
+		}
+
+		async function sendRequest(request, attempts = 0) {
+			if (client.beforeRequest) {
+				let init = await client.beforeRequest(request);
+				if (init)
+					// eslint-disable-next-line no-undef
+					request = new Request(request, init);
+			}
+			// eslint-disable-next-line no-undef
+			return beforeResponse(request, await fetch(request), attempts);
 		}
 
 		async function save(itemOrArray) {
@@ -185,8 +211,7 @@ function rdbClient() {
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
 			let request = new Request(`${url}`, {method: 'PATCH', headers, body});
-			// eslint-disable-next-line no-undef
-			let response = await fetch(request);
+			let response = await sendRequest(request);
 			if (response.status >= 200 && response.status < 300 ) {
 				rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
 				return;
@@ -241,7 +266,7 @@ function rdbClient() {
 			// eslint-disable-next-line no-undef
 			let request = new Request(`${url}`, {method: 'PATCH', headers, body});
 			// eslint-disable-next-line no-undef
-			let response = await fetch(request);
+			let response = await sendRequest(request);
 			if (response.status >= 200 && response.status < 300 ) {
 				rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
 				return;
@@ -265,8 +290,7 @@ function rdbClient() {
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
 			let request = new Request(`${url}`, {method: 'PATCH', headers, body});
-			// eslint-disable-next-line no-undef
-			let response = await fetch(request);
+			let response = await sendRequest(request);
 			if (response.status >= 200 && response.status < 300 ) {
 				array.length = 0;
 				rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
@@ -351,8 +375,7 @@ function rdbClient() {
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
 			let request = new Request(`${url}`, {method: 'PATCH', headers, body});
-			// eslint-disable-next-line no-undef
-			let response = await fetch(request);
+			let response = await sendRequest(request);
 			if (response.status >= 200 && response.status < 300 ) {
 				rootMap.set(row, {url});
 				return;
@@ -376,8 +399,7 @@ function rdbClient() {
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
 			let request = new Request(`${url}`, {method: 'PATCH', headers, body});
-			// eslint-disable-next-line no-undef
-			let response = await fetch(request);
+			let response = await sendRequest(request);
 			if (response.status >= 200 && response.status < 300 ) {
 				rootMap.set(row, {url});
 				return;
