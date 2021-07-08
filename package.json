@@ -3,13 +3,16 @@
   "version": "1.1.1",
   "description": "Rdb in the browser",
   "main": "index.js",
+  "module": "rdb-client.esm.js",
   "keywords": [
     "rdb",
     "orm",
     "JSON",
-    "patch"
+    "patch",
+    "browser"
   ],
   "scripts": {
+    "build": "rollup -c rollup.config.js",
     "test": "eslint ./ && jest",
     "coveralls": "jest --coverage && cat ./coverage/lcov.info | coveralls",
     "lint": "eslint ./",
@@ -24,12 +27,16 @@
     "type": "git",
     "url": "git@github.com:alfateam/rdb-client.git"
   },
-  "homepage": "https://github.com/alfateam/node-cls/blob/master/README.md",
+  "homepage": "https://github.com/alfateam/rdb-client/blob/master/README.md",
   "dependencies": {
+    "isomorphic-fetch": "^3.0.0",
     "on-change": "^3.0.2",
     "rfc6902": "^3.0.4"
   },
   "devDependencies": {
+    "rollup": "^2.52.7",
+    "@rollup/plugin-commonjs": "^19.0.0",
+    "@rollup/plugin-node-resolve": "^13.0.0",
     "coveralls": "^3.0.6",
     "eslint": "^6.6.0",
     "eslint-plugin-jest": "^23.0.4",

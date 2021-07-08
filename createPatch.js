@@ -1,8 +1,10 @@
 let rfc = require('rfc6902');
+let dateToIsoString = require('./dateToIsoString');
+let stringify = require('./stringify');
 
-module.exports = function createPatch(original, dto) {
-	let clonedOriginal = toCompareObject(original);
-	let clonedDto = toCompareObject(dto);
+module.exports = function createPatch(original, dto, options) {
+	let clonedOriginal = toCompareObject(original, options);
+	let clonedDto = toCompareObject(dto, options);
 	let changes = rfc.createPatch(clonedOriginal, clonedDto);
 	changes = changes.map(addOldValue);
 	return changes;
@@ -23,24 +25,40 @@ module.exports = function createPatch(original, dto) {
 		return change;
 	}
 
-	function toCompareObject(object) {
+	function toCompareObject(object, options) {
 		if (Array.isArray(object)) {
-			let copy = {__patchType : 'Array'};
-			for (var i = 0; i < object.length; i++) {
-				let element = toCompareObject(object[i]);
-				if (element === Object(element) && 'id' in element)
-					copy[element.id] = element;
+			let copy = { __patchType: 'Array' };
+			for (let i = 0; i < object.length; i++) {
+				let element = toCompareObject(object[i], options);
+				if (options && options.keys && element === Object(element)) {
+					let key = [];
+					for (let i = 0; i < options.keys.length; i++) {
+						let keyName = options.keys[i];
+						key.push(element[keyName]);
+					}
+					copy[stringify(key)] = element;
+				}
+				else if (element === Object(element) && 'id' in element)
+					copy[stringify(element.id)] = element;
 				else
 					copy[i] = element;
 			}
 			return copy;
-		} else if (object === Object(object)) {
+		}
+		else if (isValidDate(object))
+			return dateToIsoString(object);
+		else if (object === Object(object)) {
 			let copy = {};
 			for (let name in object) {
-				copy[name] = toCompareObject(object[name]);
+				copy[name] = toCompareObject(object[name], options && options[name]);
 			}
 			return copy;
 		}
 		return object;
 	}
+
+	function isValidDate(d) {
+		return d instanceof Date && !isNaN(d);
+	}
+
 };
