@@ -223,7 +223,7 @@ function rdbClient() {
 			}
 		}
 
-		async function clearChangesArray(array) {
+		function clearChangesArray(array) {
 			let {original, jsonMap} = rootMap.get(array);
 			let {added, removed, changed} = difference(original, new Set(array), jsonMap);
 			added = new Set(added);
