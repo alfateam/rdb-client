@@ -7,8 +7,6 @@ let rootMap = new WeakMap();
 function rdbClient() {
 	let client = rdbClient;
 	client.createPatch = createPatch; //keep for legacy reasons
-	//beforeRequest
-	//beforeResponse
 	client.table = table;
 	client.or = column('or');
 	client.and = column('and');
@@ -91,6 +89,8 @@ function rdbClient() {
 						return refreshArray.bind(null,array);
 					else if (property === 'clearChanges')
 						return clearChangesArray.bind(null,array);
+					else if (property === 'acceptChanges')
+						return acceptChangesArray.bind(null,array);
 					else
 						return Reflect.get(...arguments);
 				}
@@ -250,6 +250,10 @@ function rdbClient() {
 					i++;
 				}
 			}
+			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
+		}
+
+		function acceptChangesArray(array) {
 			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
 		}
 
