@@ -1,6 +1,6 @@
 {
   "name": "rdb-client",
-  "version": "1.1.1",
+  "version": "1.2.1",
   "description": "Rdb in the browser",
   "main": "index.js",
   "module": "rdb-client.esm.js",
@@ -21,7 +21,7 @@
   "author": "Lars-Erik Roald <lars.roald@gmail.com>",
   "license": "ISC",
   "engines": {
-    "node": ">= 8.0.0"
+    "node": ">= 10.0.0"
   },
   "repository": {
     "type": "git",
