@@ -20,8 +20,11 @@ function rdbClient() {
 	function table(url) {
 		let meta;
 		let c = {
-			getManyDto,
-			getMany: getManyDto,
+			getManyDto: getMany,
+			getMany,
+			tryGetFirst,
+			tryGetById,
+			getById,
 			proxify
 		};
 
@@ -37,13 +40,42 @@ function rdbClient() {
 		let _table = new Proxy(c, handler);
 		return _table;
 
-		async function getManyDto() {
+		async function getMany() {
 			let args = Array.prototype.slice.call(arguments);
-			let rows = await getManyDtoCore.apply(null, args);
+			let rows = await getManyCore.apply(null, args);
 			return proxify(rows);
 		}
 
-		async function getManyDtoCore() {
+		async function tryGetFirst(filter, strategy) {
+			strategy = {...(strategy || {}), ...{limit: 1}};
+			let args = [filter, strategy].concat(Array.prototype.slice.call(arguments).slice(2));
+			let rows = await getManyCore.apply(null, args);
+			return proxify(rows[0]);
+		}
+
+		async function tryGetById() {
+			if (arguments.length === 0)
+				return;
+			let meta = await getMeta();
+			let filter = client.filter;
+			let keyFilter = client.filter;
+			for (let i = 0; i < meta.keys.length; i++) {
+				let keyName = meta.keys[i];
+				let keyValue = arguments[i];
+				keyFilter = keyFilter.and(_table[keyName].eq(keyValue));
+			}
+			let args = [filter].concat(Array.prototype.slice.call(arguments).slice(meta.keys.length));
+			return tryGetFirst.apply(null, args);
+		}
+
+		async function getById() {
+			let row = tryGetById.apply(null, arguments);
+			if (!row)
+				throw new Error('Row not found : ' + arguments);
+			return row;
+		}
+
+		async function getManyCore() {
 			let args = Array.prototype.slice.call(arguments);
 			let body = stringify({
 				path: 'getManyDto',
@@ -327,7 +359,7 @@ function rdbClient() {
 				filter = filter.or(keyFilter);
 			}
 			let args = [filter].concat(Array.prototype.slice.call(arguments).slice(1));
-			let rows = await getManyDtoCore.apply(null, args);
+			let rows = await getManyCore.apply(null, args);
 			let removedIndexes = new Set();
 			if (array.length !== rows.length)
 				for (var i = 0; i < array.length; i++) {
@@ -400,7 +432,7 @@ function rdbClient() {
 				keyFilter = keyFilter.and(_table[keyName].eq(keyValue));
 			}
 			let args = [filter].concat(Array.prototype.slice.call(arguments).slice(1));
-			let rows = await getManyDtoCore.apply(null, args);
+			let rows = await getManyCore.apply(null, args);
 			for(let p in row) {
 				delete row[p];
 			}
