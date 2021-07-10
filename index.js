@@ -22,8 +22,7 @@ function rdbClient() {
 		let c = {
 			getManyDto,
 			getMany: getManyDto,
-			proxify,
-			save: save,
+			proxify
 		};
 
 		let handler = {
@@ -35,18 +34,18 @@ function rdbClient() {
 			}
 
 		};
-		let _table =  new Proxy(c, handler);
+		let _table = new Proxy(c, handler);
 		return _table;
 
 		async function getManyDto() {
 			let args = Array.prototype.slice.call(arguments);
-			let rows =  await getManyDtoCore.apply(null, args);
+			let rows = await getManyDtoCore.apply(null, args);
 			return proxify(rows);
 		}
 
 		async function getManyDtoCore() {
 			let args = Array.prototype.slice.call(arguments);
-			let body = JSON.stringify({
+			let body = stringify({
 				path: 'getManyDto',
 				args
 			});
@@ -54,7 +53,7 @@ function rdbClient() {
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
-			let response = await sendRequest({url, init: {method: 'POST', headers, body}});
+			let response = await sendRequest({ url, init: { method: 'POST', headers, body } });
 			if (response.status === 200) {
 				return await response.json();
 			}
@@ -79,26 +78,26 @@ function rdbClient() {
 			let enabled = false;
 			let handler = {
 				get(_target, property,) {
-					if (property === 'save')
-						return saveArray.bind(null,array);
-					else if (property === 'insert')
-						return insertArray.bind(null,array);
-					else if (property === 'delete')
-						return deleteArray.bind(null,array);
-					else if (property === 'refresh')
-						return refreshArray.bind(null,array);
-					else if (property === 'clearChanges')
-						return clearChangesArray.bind(null,array);
-					else if (property === 'acceptChanges')
-						return acceptChangesArray.bind(null,array);
+					if (property === 'save') //call server then acceptChanges
+						return saveArray.bind(null, array);
+					else if (property === 'insert') //call server then remove from jsonMap and add to original
+						return insertArray.bind(null, array);
+					else if (property === 'delete') //call server then remove from jsonMap and original
+						return deleteArray.bind(null, array);
+					else if (property === 'refresh') //refresh from server then acceptChanges
+						return refreshArray.bind(null, array);
+					else if (property === 'clearChanges') //refresh from jsonMap, update original if present
+						return clearChangesArray.bind(null, array);
+					else if (property === 'acceptChanges') //remove from jsonMap
+						return acceptChangesArray.bind(null, array);
 					else
 						return Reflect.get(...arguments);
 				}
 
 			};
-			let innerProxy =  new Proxy(array, handler);
-			let arrayProxy =  onChange(innerProxy, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
-			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
+			let innerProxy = new Proxy(array, handler);
+			let arrayProxy = onChange(innerProxy, () => { }, { pathAsArray: true, ignoreDetached: true, onValidate });
+			rootMap.set(array, { jsonMap: new Map(), original: new Set(array) });
 			enabled = true;
 			return arrayProxy;
 
@@ -106,7 +105,7 @@ function rdbClient() {
 				if (!enabled)
 					return true;
 				if (enabled && path.length > 0) {
-					let {jsonMap} = rootMap.get(array);
+					let { jsonMap } = rootMap.get(array);
 					if (!jsonMap.has(array[path[0]]))
 						jsonMap.set(array[path[0]], stringify(array[path[0]]));
 				}
@@ -118,17 +117,26 @@ function rdbClient() {
 			let enabled = false;
 			let handler = {
 				get(_target, property,) {
-					if (property === 'save')
-						return saveRow.bind(null,row);
-					else if (property === 'insert')
-						return insertRow.bind(null,row);
+					if (property === 'save') //call server then acceptChanges
+						return saveRow.bind(null, row);
+					else if (property === 'insert') //call server then remove from jsonMap and add to original
+						return insertRow.bind(null, row);
+					else if (property === 'delete') //call server then remove from jsonMap and original
+						return deleteRow.bind(null, row);
+					else if (property === 'refresh') //refresh from server then acceptChanges
+						return refreshRow.bind(null, row);
+					else if (property === 'clearChanges') //refresh from jsonMap, update original if present
+						return clearChangesRow.bind(null, row);
+					else if (property === 'acceptChanges') //remove from jsonMap
+						return acceptChangesRow.bind(null, row);
 					else
 						return Reflect.get(...arguments);
 				}
+
 			};
-			let innerProxy =  new Proxy(row, handler);
-			let rowProxy = onChange(innerProxy, () => {}, {pathAsArray: true, ignoreDetached: true, onValidate});
-			rootMap.set(row, {jsonMap: new Map()});
+			let innerProxy = new Proxy(row, handler);
+			let rowProxy = onChange(innerProxy, () => { }, { pathAsArray: true, ignoreDetached: true, onValidate });
+			rootMap.set(row, { jsonMap: new Map() });
 			enabled = true;
 			return rowProxy;
 
@@ -149,28 +157,19 @@ function rdbClient() {
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
-			let request = {url, init: {method: 'GET', headers}};
+			let request = { url, init: { method: 'GET', headers } };
 			let response = await sendRequest(request);
-			if (response.status === 200) {
-				meta = await response.json();
-				return meta;
-			}
-			else {
-				let msg = response.text && await response.text() || `Status ${response.status} from server`;
-				let e = new Error(msg);
-				e.status = response.status;
-				throw e;
-			}
+			return handleResponse(response,  () => response.json());
 		}
 
-		async function beforeResponse(response, {url, init, attempts}) {
+		async function beforeResponse(response, { url, init, attempts }) {
 			if (!client.beforeResponse)
 				return response;
 
 			let shouldRetry;
-			await client.beforeResponse(response, {retry, attempts, request: init});
+			await client.beforeResponse(response, { retry, attempts, request: init });
 			if (shouldRetry)
-				return sendRequest({url, init}, {attempts: ++attempts});
+				return sendRequest({ url, init }, { attempts: ++attempts });
 			return response;
 
 			function retry() {
@@ -178,54 +177,38 @@ function rdbClient() {
 			}
 		}
 
-		async function sendRequest({url, init}, {attempts = 0} = {}) {
+		async function sendRequest({ url, init }, { attempts = 0 } = {}) {
 			if (client.beforeRequest) {
 				init = await client.beforeRequest(init) || init;
 			}
 			// eslint-disable-next-line no-undef
 			let request = new Request(url, init);
 			// eslint-disable-next-line no-undef
-			return beforeResponse(await fetch(request), {url, init, attempts});
-		}
-
-		async function save(itemOrArray) {
-			if (Array.isArray(itemOrArray))
-				return saveArray(itemOrArray);
-			else
-				return saveRow(itemOrArray);
+			return beforeResponse(await fetch(request), { url, init, attempts });
 		}
 
 		async function saveArray(array, options) {
-			let {original, jsonMap} = rootMap.get(array);
+			let { original, jsonMap } = rootMap.get(array);
 			let meta = await getMeta();
-			let {added, removed, changed} = difference(original, new Set(array), jsonMap);
+			let { added, removed, changed } = difference(original, new Set(array), jsonMap);
 			let insertPatch = createPatch([], added, meta);
 			let deletePatch = createPatch(removed, [], meta);
 			let updatePatch = createPatch(changed.map(x => JSON.parse(jsonMap.get(x))), changed, meta);
 			let patch = [...insertPatch, ...updatePatch, ...deletePatch];
 
-			let body = JSON.stringify({patch, options});
+			let body = stringify({ patch, options });
 			// eslint-disable-next-line no-undef
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
-			let request = {url, init: {method: 'PATCH', headers, body}};
+			let request = { url, init: { method: 'PATCH', headers, body } };
 			let response = await sendRequest(request);
-			if (response.status >= 200 && response.status < 300 ) {
-				rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
-				return;
-			}
-			else {
-				let msg = response.text && await response.text() || `Status ${response.status} from server`;
-				let e = new Error(msg);
-				e.status = response.status;
-				throw e;
-			}
+			await handleResponse(response, () => rootMap.set(array, { jsonMap: new Map(), original: new Set(array)}));
 		}
 
 		function clearChangesArray(array) {
-			let {original, jsonMap} = rootMap.get(array);
-			let {added, removed, changed} = difference(original, new Set(array), jsonMap);
+			let { original, jsonMap } = rootMap.get(array);
+			let { added, removed, changed } = difference(original, new Set(array), jsonMap);
 			added = new Set(added);
 			removed = new Set(removed);
 			changed = new Set(changed);
@@ -241,7 +224,7 @@ function rdbClient() {
 			}
 			if (removed.size > 0) {
 				let i = 0;
-				for(let row of original) {
+				for (let row of original) {
 					if (removed.has(row)) {
 						if (jsonMap.has(row))
 							row = JSON.parse(jsonMap.get(row));
@@ -250,11 +233,11 @@ function rdbClient() {
 					i++;
 				}
 			}
-			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
+			rootMap.set(array, { jsonMap: new Map(), original: new Set(array) });
 		}
 
 		function acceptChangesArray(array) {
-			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
+			rootMap.set(array, { jsonMap: new Map(), original: new Set(array) });
 		}
 
 		async function insertArray(array) {
@@ -262,17 +245,20 @@ function rdbClient() {
 				return;
 			let meta = await getMeta();
 			let insertPatch = createPatch([], array, meta);
-			let body = JSON.stringify(insertPatch);
+			let body = stringify(insertPatch);
 			// eslint-disable-next-line no-undef
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
-			let request = {url, init:  {method: 'PATCH', headers, body}};
+			let request = { url, init: { method: 'PATCH', headers, body } };
 			// eslint-disable-next-line no-undef
 			let response = await sendRequest(request);
-			if (response.status >= 200 && response.status < 300 ) {
-				rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
-				return;
+			await handleResponse(response, () => rootMap.set(array, { jsonMap: new Map(), original: new Set(array) }));
+		}
+
+		async function handleResponse(response, onSuccess) {
+			if (response.status >= 200 && response.status < 300) {
+				return onSuccess(response);
 			}
 			else {
 				let msg = response.text && await response.text() || `Status ${response.status} from server`;
@@ -282,29 +268,23 @@ function rdbClient() {
 			}
 		}
 
+
 		async function deleteArray(array, options) {
 			if (array.length === 0)
 				return;
 			let meta = await getMeta();
 			let patch = createPatch(array, [], meta);
-			let body = JSON.stringify({patch, options});
+			let body = stringify({ patch, options });
 			// eslint-disable-next-line no-undef
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
-			let request = {url, init: {method: 'PATCH', headers, body}};
+			let request = { url, init: { method: 'PATCH', headers, body } };
 			let response = await sendRequest(request);
-			if (response.status >= 200 && response.status < 300 ) {
+			await handleResponse(response, () => {
 				array.length = 0;
-				rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
-				return;
-			}
-			else {
-				let msg = response.text && await response.text() || `Status ${response.status} from server`;
-				let e = new Error(msg);
-				e.status = response.status;
-				throw e;
-			}
+				rootMap.set(array, { jsonMap: new Map(), original: new Set(array) });
+			});
 		}
 
 		function setMapValue(rowsMap, keys, row, index) {
@@ -335,7 +315,7 @@ function rdbClient() {
 			let meta = await getMeta();
 			let filter = client.filter;
 			let rowsMap = new Map();
-			for(let rowIndex = 0; rowIndex < array.length; rowIndex++) {
+			for (let rowIndex = 0; rowIndex < array.length; rowIndex++) {
 				let row = array[rowIndex];
 				let keyFilter = client.filter;
 				for (let i = 0; i < meta.keys.length; i++) {
@@ -350,10 +330,10 @@ function rdbClient() {
 			let rows = await getManyDtoCore.apply(null, args);
 			let removedIndexes = new Set();
 			if (array.length !== rows.length)
-				for(var i = 0; i < array.length; i++) {
+				for (var i = 0; i < array.length; i++) {
 					removedIndexes.add(i);
 				}
-			for(let i = 0; i < rows.length; i++) {
+			for (let i = 0; i < rows.length; i++) {
 				let row = rows[i];
 				let originalIndex = getMapValue(rowsMap, meta.keys, row);
 				if (array.length !== rows.length)
@@ -361,59 +341,93 @@ function rdbClient() {
 				array[originalIndex] = row;
 			}
 			let offset = 0;
-			for(let i of removedIndexes) {
-				array.splice(i + offset , 1);
+			for (let i of removedIndexes) {
+				array.splice(i + offset, 1);
 				offset--;
 			}
-			rootMap.set(array, {jsonMap: new Map(), original: new Set(array)});
+			rootMap.set(array, { jsonMap: new Map(), original: new Set(array) });
 		}
 
 		async function insertRow(row, options) {
-			let {url} = rootMap.get(row);
 			let meta = await getMeta(url);
 			let patch = createPatch([], [row], meta);
-			let body = JSON.stringify({patch, options});
+			let body = stringify({ patch, options });
 			// eslint-disable-next-line no-undef
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
-			let request = {url, init: {method: 'PATCH', headers, body}};
+			let request = { url, init: { method: 'PATCH', headers, body } };
 			let response = await sendRequest(request);
-			if (response.status >= 200 && response.status < 300 ) {
-				rootMap.set(row, {url});
-				return;
-			}
-			else {
-				let msg = response.text && await response.text() || `Status ${response.status} from server`;
-				let e = new Error(msg);
-				e.status = response.status;
-				throw e;
-			}
+			await handleResponse(response, () => rootMap.set(row, {}));
 		}
+
+		async function deleteRow(row, options) {
+			let meta = await getMeta(url);
+			let patch = createPatch([row], [], meta);
+			let body = stringify({ patch, options });
+			// eslint-disable-next-line no-undef
+			var headers = new Headers();
+			headers.append('Content-Type', 'application/json');
+			// eslint-disable-next-line no-undef
+			let request = { url, init: { method: 'PATCH', headers, body } };
+			let response = await sendRequest(request);
+			await handleResponse(response, () => rootMap.set(row, {}));
+		}
+
 		async function saveRow(row, options) {
-			let {json} = rootMap.get(row);
+			let { json } = rootMap.get(row);
 			if (!json)
 				return;
 			let meta = await getMeta(url);
 			let patch = createPatch([JSON.parse(json)], [row], meta);
-			let body = JSON.stringify({patch, options});
+			let body = stringify({ patch, options });
 			// eslint-disable-next-line no-undef
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
-			let request = {url, init: {method: 'PATCH', headers, body}};
+			let request = { url, init: { method: 'PATCH', headers, body } };
 			let response = await sendRequest(request);
-			if (response.status >= 200 && response.status < 300 ) {
-				rootMap.set(row, {url});
+			await handleResponse(response, () => rootMap.set(row, {}));
+		}
+
+		async function refreshRow(row) {
+			let meta = await getMeta();
+			let filter = client.filter;
+			let keyFilter = client.filter;
+			for (let i = 0; i < meta.keys.length; i++) {
+				let keyName = meta.keys[i];
+				let keyValue = row[keyName];
+				keyFilter = keyFilter.and(_table[keyName].eq(keyValue));
+			}
+			let args = [filter].concat(Array.prototype.slice.call(arguments).slice(1));
+			let rows = await getManyDtoCore.apply(null, args);
+			for(let p in row) {
+				delete row[p];
+			}
+			if (rows.length === 0)
 				return;
+			for(let p in rows[0]) {
+				row[p] = rows[0][p];
 			}
-			else {
-				let msg = response.text && await response.text() || `Status ${response.status} from server`;
-				let e = new Error(msg);
-				// @ts-ignore
-				e.status = response.status;
-				throw e;
+			rootMap.set(row, {});
+		}
+
+		function acceptChangesRow(row) {
+			rootMap.set(row, {});
+		}
+
+		function clearChangesRow(row) {
+			let {json} = rootMap.get(row);
+			if (!json)
+				return;
+			let old = JSON.parse(json);
+			for (let p in row) {
+				delete row[p];
 			}
+			for (let p in old) {
+				row[p] = old[p];
+			}
+			rootMap.set(row, {});
 		}
 
 	}
@@ -435,13 +449,13 @@ function difference(setA, setB, jsonMap) {
 		}
 	}
 
-	return {added, removed: Array.from(removed), changed};
+	return { added, removed: Array.from(removed), changed };
 }
 
 function column(path, ...previous) {
 	function c() {
 		let args = previous.concat(Array.prototype.slice.call(arguments));
-		let result = {path, args};
+		let result = { path, args };
 		let handler = {
 			get(_target, property) {
 				if (property === 'toJSON')

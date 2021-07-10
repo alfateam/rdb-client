@@ -9,8 +9,9 @@ module.exports = {
     ],
     "parserOptions": {
         "sourceType": "module",
-        "ecmaVersion": 2017
+        "ecmaVersion": 2018
     },
+    "ignorePatterns": ["*esm.js"],
     "rules": {
         "indent": ["error", "tab"],
         "linebreak-style": ["error", "unix"],
