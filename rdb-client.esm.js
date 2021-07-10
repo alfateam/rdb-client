@@ -2668,6 +2668,8 @@ function rdbClient() {
 			strategy = {...(strategy || {}), ...{limit: 1}};
 			let args = [filter, strategy].concat(Array.prototype.slice.call(arguments).slice(2));
 			let rows = await getManyCore.apply(null, args);
+			if (rows.length === 0)
+				return;
 			return proxify(rows[0]);
 		}
 
@@ -2675,14 +2677,13 @@ function rdbClient() {
 			if (arguments.length === 0)
 				return;
 			let meta = await getMeta();
-			let filter = client.filter;
 			let keyFilter = client.filter;
 			for (let i = 0; i < meta.keys.length; i++) {
 				let keyName = meta.keys[i];
 				let keyValue = arguments[i];
 				keyFilter = keyFilter.and(_table[keyName].eq(keyValue));
 			}
-			let args = [filter].concat(Array.prototype.slice.call(arguments).slice(meta.keys.length));
+			let args = [keyFilter].concat(Array.prototype.slice.call(arguments).slice(meta.keys.length));
 			return tryGetFirst.apply(null, args);
 		}
 
@@ -3040,14 +3041,13 @@ function rdbClient() {
 
 		async function refreshRow(row) {
 			let meta = await getMeta();
-			let filter = client.filter;
 			let keyFilter = client.filter;
 			for (let i = 0; i < meta.keys.length; i++) {
 				let keyName = meta.keys[i];
 				let keyValue = row[keyName];
 				keyFilter = keyFilter.and(_table[keyName].eq(keyValue));
 			}
-			let args = [filter].concat(Array.prototype.slice.call(arguments).slice(1));
+			let args = [keyFilter].concat(Array.prototype.slice.call(arguments).slice(1));
 			let rows = await getManyCore.apply(null, args);
 			for(let p in row) {
 				delete row[p];
