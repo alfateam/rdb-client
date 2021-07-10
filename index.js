@@ -69,7 +69,7 @@ function rdbClient() {
 		}
 
 		async function getById() {
-			let row = tryGetById.apply(null, arguments);
+			let row = await tryGetById.apply(null, arguments);
 			if (!row)
 				throw new Error('Row not found : ' + arguments);
 			return row;
