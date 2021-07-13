@@ -4,6 +4,7 @@
   "description": "Rdb in the browser",
   "main": "index.js",
   "module": "rdb-client.esm.js",
+  "types": "./index.d.ts",
   "keywords": [
     "rdb",
     "orm",

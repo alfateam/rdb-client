@@ -2626,11 +2626,13 @@ let rootMap = new WeakMap();
 function rdbClient() {
 	let _beforeResponse;
 	let _beforeRequest;
+	let _reactive;
 
 	let client = rdbClient;
 	client.createPatch = createPatch; //keep for legacy reasons
-	_beforeResponse(cb => _beforeResponse = cb);
-	_beforeRequest(cb => _beforeRequest = cb);
+	client.beforeResponse = (cb => _beforeResponse = cb);
+	client.beforeRequest = (cb => _beforeRequest = cb);
+	client.reactive = (cb => _reactive = cb);
 	client.table = table;
 	client.or = column('or');
 	client.and = column('and');
@@ -2640,9 +2642,6 @@ function rdbClient() {
 		and: client.and,
 		not: client.not,
 	};
-
-
-
 
 	function table(url) {
 		let c = {
@@ -2732,8 +2731,8 @@ function rdbClient() {
 		}
 
 		function proxifyArray(array) {
-			if (client.reactive)
-				array = client.reactive(array);
+			if (_reactive)
+				array = _reactive(array);
 			let enabled = false;
 			let handler = {
 				get(_target, property,) {
