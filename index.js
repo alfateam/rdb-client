@@ -5,8 +5,13 @@ require('isomorphic-fetch');
 let rootMap = new WeakMap();
 
 function rdbClient() {
+	let _beforeResponse;
+	let _beforeRequest;
+
 	let client = rdbClient;
 	client.createPatch = createPatch; //keep for legacy reasons
+	_beforeResponse(cb => _beforeResponse = cb);
+	_beforeRequest(cb => _beforeRequest = cb);
 	client.table = table;
 	client.or = column('or');
 	client.and = column('and');
@@ -16,6 +21,9 @@ function rdbClient() {
 		and: client.and,
 		not: client.not,
 	};
+
+
+
 
 	function table(url) {
 		let meta;
@@ -111,17 +119,17 @@ function rdbClient() {
 			let enabled = false;
 			let handler = {
 				get(_target, property,) {
-					if (property === 'save') //call server then acceptChanges
+					if (property === 'save')
 						return saveArray.bind(null, array);
-					else if (property === 'insert') //call server then remove from jsonMap and add to original
+					else if (property === 'insert')
 						return insertArray.bind(null, array);
-					else if (property === 'delete') //call server then remove from jsonMap and original
+					else if (property === 'delete')
 						return deleteArray.bind(null, array);
-					else if (property === 'refresh') //refresh from server then acceptChanges
+					else if (property === 'refresh')
 						return refreshArray.bind(null, array);
-					else if (property === 'clearChanges') //refresh from jsonMap, update original if present
+					else if (property === 'clearChanges')
 						return clearChangesArray.bind(null, array);
-					else if (property === 'acceptChanges') //remove from jsonMap
+					else if (property === 'acceptChanges')
 						return acceptChangesArray.bind(null, array);
 					else
 						return Reflect.get(...arguments);
@@ -196,11 +204,11 @@ function rdbClient() {
 		}
 
 		async function beforeResponse(response, { url, init, attempts }) {
-			if (!client.beforeResponse)
+			if (!_beforeResponse)
 				return response;
 
 			let shouldRetry;
-			await client.beforeResponse(response, { retry, attempts, request: init });
+			await _beforeResponse(response, { retry, attempts, request: init });
 			if (shouldRetry)
 				return sendRequest({ url, init }, { attempts: ++attempts });
 			return response;
@@ -211,8 +219,8 @@ function rdbClient() {
 		}
 
 		async function sendRequest({ url, init }, { attempts = 0 } = {}) {
-			if (client.beforeRequest) {
-				init = await client.beforeRequest(init) || init;
+			if (_beforeRequest) {
+				init = await _beforeRequest(init) || init;
 			}
 			// eslint-disable-next-line no-undef
 			let request = new Request(url, init);
