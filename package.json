@@ -4,7 +4,6 @@
   "description": "Rdb in the browser",
   "main": "index.js",
   "module": "rdb-client.esm.js",
-  "types": "./index.d.ts",
   "keywords": [
     "rdb",
     "orm",
@@ -12,6 +11,7 @@
     "patch",
     "browser"
   ],
+  "types": "./typings/index.d.ts",
   "scripts": {
     "build": "rollup -c rollup.config.js",
     "test": "eslint ./ && jest",
