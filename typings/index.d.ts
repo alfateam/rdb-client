@@ -29,7 +29,7 @@ declare namespace RdbClient {
     body: any;
   }
 
-  export enum ConcurrencyValues {
+  export enum Concurrencies {
     Optimistic = 'optimistic',
     SkipOnConflict = 'skipOnConflict',
     Overwrite = 'overwrite'
