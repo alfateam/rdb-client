@@ -52,19 +52,25 @@ function rdbClient() {
 		let _table = new Proxy(c, handler);
 		return _table;
 
-		async function getMany() {
+		async function getMany(_, strategy) {
 			let args = Array.prototype.slice.call(arguments);
 			let rows = await getManyCore.apply(null, args);
-			return proxify(rows);
+			let proxies = proxify(rows);
+			rootMap.get(rows).strategy = strategy;
+			return proxies;
 		}
 
 		async function tryGetFirst(filter, strategy) {
-			strategy = {...(strategy || {}), ...{limit: 1}};
-			let args = [filter, strategy].concat(Array.prototype.slice.call(arguments).slice(2));
+			if (strategy === undefined)
+				strategy = await getDefaultStrategy();
+			let _strategy = { ...(strategy), ...{ limit: 1 } };
+			let args = [filter, _strategy].concat(Array.prototype.slice.call(arguments).slice(2));
 			let rows = await getManyCore.apply(null, args);
 			if (rows.length === 0)
 				return;
-			return proxify(rows[0]);
+			let proxies = proxify(rows[0]);
+			rootMap.get(rows[0]).strategy = _strategy;
+			return proxies;
 		}
 
 		async function tryGetById() {
@@ -205,7 +211,7 @@ function rdbClient() {
 			// eslint-disable-next-line no-undef
 			let request = { url, init: { method: 'GET', headers } };
 			let response = await sendRequest(request);
-			return handleResponse(response,  () => response.json());
+			return handleResponse(response, () => response.json());
 		}
 
 		async function beforeResponse(response, { url, init, attempts }) {
@@ -234,55 +240,50 @@ function rdbClient() {
 		}
 
 		async function saveArray(array, options) {
-			let { original, jsonMap } = rootMap.get(array);
+			let { original, jsonMap, strategy } = rootMap.get(array);
 			let meta = await getMeta();
 			let { added, removed, changed } = difference(original, new Set(array), jsonMap);
-			// negotiateKeys(added);
 			let insertPatch = createPatch([], added, meta);
 			let deletePatch = createPatch(removed, [], meta);
 			let updatePatch = createPatch(changed.map(x => JSON.parse(jsonMap.get(x))), changed, meta);
 			let patch = [...insertPatch, ...updatePatch, ...deletePatch];
 
-			let body = stringify({ patch, options });
+			let body = stringify({ patch, options: {...options, strategy} });
 			// eslint-disable-next-line no-undef
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
 			let request = { url, init: { method: 'PATCH', headers, body } };
 			let response = await sendRequest(request);
-			await handleResponse(response, () => rootMap.set(array, { jsonMap: new Map(), original: new Set(array)}));
+			await handleResponse(response, (response) => {
+				copyInto(response.updated, changed);
+				copyInto(response.inserted, added);
+				rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
+			});
 		}
 
-		// async function negotiateKeys(added, meta) {
-		// 	_negotiateKeys(added, await extractManyRelationsUUID(meta));
+		function copyInto(from, to) {
+			for (let i = 0; i < from.length; i++) {
+				for (let p in from[i]) {
+					to[p] = from[p];
+					console.log(to[p]);
+				}
+			}
+		}
 
-		// 	function _negotiateKeys(added, meta) {
-		// 		for (let i = 0; i < meta.keys.length; i++) {
-		// 			const name = meta.keys[i].name;
-
-		// 		}
-		// 	}
-
-
-
-		// }
-
-		// async function extractManyRelationsUUID(meta) {
-		// 	meta = meta || await getMeta();
-		// 	let keys = meta.keys.filter(x => x.type === 'UUIDColumn');
-		// 	let relations = {};
-		// 	for(let p  in meta.relations) {
-		// 		let subMeta = extractManyRelationsUUID(meta.relations[p]);
-		// 		if (subMeta.keys.length > 0 || subMeta.relations.keys().length > 0)
-		// 			relations = {...relations, [p]: subMeta.relation};
-		// 	}
-		// 	return {keys, relations};
-		// }
+		async function getDefaultStrategy(meta) {
+			meta = meta || await getMeta();
+			let relations = {};
+			for (let p in meta.relations) {
+				relations[p] = getDefaultStrategy(meta.relations[p]);
+			}
+			return relations;
+		}
 
 
 
 		function clearChangesArray(array) {
-			let { original, jsonMap } = rootMap.get(array);
+			let { original, jsonMap, strategy} = rootMap.get(array);
 			let { added, removed, changed } = difference(original, new Set(array), jsonMap);
 			added = new Set(added);
 			removed = new Set(removed);
@@ -308,7 +309,7 @@ function rdbClient() {
 					i++;
 				}
 			}
-			rootMap.set(array, { jsonMap: new Map(), original: new Set(array) });
+			rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
 		}
 
 		function acceptChangesArray(array) {
@@ -327,8 +328,9 @@ function rdbClient() {
 			// eslint-disable-next-line no-undef
 			let request = { url, init: { method: 'PATCH', headers, body } };
 			// eslint-disable-next-line no-undef
+			let strategy = rootMap.get(array).strategy;
 			let response = await sendRequest(request);
-			await handleResponse(response, () => rootMap.set(array, { jsonMap: new Map(), original: new Set(array) }));
+			await handleResponse(response, () => rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy }));
 		}
 
 		async function handleResponse(response, onSuccess) {
@@ -356,9 +358,10 @@ function rdbClient() {
 			// eslint-disable-next-line no-undef
 			let request = { url, init: { method: 'PATCH', headers, body } };
 			let response = await sendRequest(request);
+			let strategy = rootMap.get(array).strategy;
 			await handleResponse(response, () => {
 				array.length = 0;
-				rootMap.set(array, { jsonMap: new Map(), original: new Set(array) });
+				rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
 			});
 		}
 
@@ -385,6 +388,7 @@ function rdbClient() {
 		}
 
 		async function refreshArray(array) {
+			let strategy = rootMap.get(array).strategy;
 			if (array.length === 0)
 				return;
 			let meta = await getMeta();
@@ -420,7 +424,7 @@ function rdbClient() {
 				array.splice(i + offset, 1);
 				offset--;
 			}
-			rootMap.set(array, { jsonMap: new Map(), original: new Set(array) });
+			rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
 		}
 
 		async function insertRow(row, options) {
@@ -475,12 +479,12 @@ function rdbClient() {
 			}
 			let args = [keyFilter].concat(Array.prototype.slice.call(arguments).slice(1));
 			let rows = await getManyCore.apply(null, args);
-			for(let p in row) {
+			for (let p in row) {
 				delete row[p];
 			}
 			if (rows.length === 0)
 				return;
-			for(let p in rows[0]) {
+			for (let p in rows[0]) {
 				row[p] = rows[0][p];
 			}
 			rootMap.set(row, {});
@@ -491,7 +495,7 @@ function rdbClient() {
 		}
 
 		function clearChangesRow(row) {
-			let {json} = rootMap.get(row);
+			let { json } = rootMap.get(row);
 			if (!json)
 				return;
 			let old = JSON.parse(json);
