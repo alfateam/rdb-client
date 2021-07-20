@@ -1991,7 +1991,7 @@ var createPatch$1 = function createPatch(original, dto, options) {
 		else if (object === Object(object)) {
 			let copy = {};
 			for (let name in object) {
-				copy[name] = toCompareObject(object[name], options && options[name]);
+				copy[name] = toCompareObject(object[name], options && options.relations && options.relations[name]);
 			}
 			return copy;
 		}
