@@ -2686,7 +2686,7 @@ function rdbClient() {
 			let meta = await getMeta();
 			let keyFilter = client.filter;
 			for (let i = 0; i < meta.keys.length; i++) {
-				let keyName = meta.keys[i];
+				let keyName = meta.keys[i].name;
 				let keyValue = arguments[i];
 				keyFilter = keyFilter.and(_table[keyName].eq(keyValue));
 			}
@@ -2945,7 +2945,7 @@ function rdbClient() {
 		}
 
 		function setMapValue(rowsMap, keys, row, index) {
-			let keyValue = row[keys[0]];
+			let keyValue = row[keys[0].name];
 			if (keys.length > 1) {
 				let subMap = rowsMap.get(keyValue);
 				if (!subMap) {
@@ -2959,7 +2959,7 @@ function rdbClient() {
 		}
 
 		function getMapValue(rowsMap, keys, row) {
-			let keyValue = row[keys[0]];
+			let keyValue = row[keys[0].name];
 			if (keys.length > 1)
 				return getMapValue(rowsMap.get(keyValue), keys.slice(1));
 			else
@@ -2976,7 +2976,7 @@ function rdbClient() {
 				let row = array[rowIndex];
 				let keyFilter = client.filter;
 				for (let i = 0; i < meta.keys.length; i++) {
-					let keyName = meta.keys[i];
+					let keyName = meta.keys[i].name;
 					let keyValue = row[keyName];
 					keyFilter = keyFilter.and(_table[keyName].eq(keyValue));
 				}
@@ -3051,7 +3051,7 @@ function rdbClient() {
 			let meta = await getMeta();
 			let keyFilter = client.filter;
 			for (let i = 0; i < meta.keys.length; i++) {
-				let keyName = meta.keys[i];
+				let keyName = meta.keys[i].name;
 				let keyValue = row[keyName];
 				keyFilter = keyFilter.and(_table[keyName].eq(keyValue));
 			}
