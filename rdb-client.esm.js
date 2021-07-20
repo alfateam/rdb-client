@@ -2762,7 +2762,7 @@ function rdbClient() {
 			};
 			let innerProxy = new Proxy(array, handler);
 			let arrayProxy = onChange(innerProxy, () => { }, { pathAsArray: true, ignoreDetached: true, onValidate });
-			rootMap.set(array, { jsonMap: new Map(), original: new Set(array) , strategy});
+			rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
 			enabled = true;
 			return arrayProxy;
 
@@ -2860,16 +2860,17 @@ function rdbClient() {
 			let updatePatch = createPatch(changed.map(x => JSON.parse(jsonMap.get(x))), changed, meta);
 			let patch = [...insertPatch, ...updatePatch, ...deletePatch];
 
-			let body = stringify({ patch, options: {...options, strategy} });
+			let body = stringify({ patch, options: { ...options, strategy } });
 			// eslint-disable-next-line no-undef
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
 			let request = { url, init: { method: 'PATCH', headers, body } };
 			let response = await sendRequest(request);
-			await handleResponse(response, (response) => {
-				copyInto(response.updated, changed);
-				copyInto(response.inserted, added);
+			await handleResponse(response, async (response) => {
+				let { updated, inserted } = await response.json();
+				copyInto(updated, changed);
+				copyInto(inserted, added);
 				rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
 			});
 		}
@@ -2895,7 +2896,7 @@ function rdbClient() {
 
 
 		function clearChangesArray(array) {
-			let { original, jsonMap, strategy} = rootMap.get(array);
+			let { original, jsonMap, strategy } = rootMap.get(array);
 			let { added, removed, changed } = difference(original, new Set(array), jsonMap);
 			added = new Set(added);
 			removed = new Set(removed);
@@ -3039,7 +3040,7 @@ function rdbClient() {
 		}
 
 		async function insertRow(row, options) {
-			let {strategy} = rootMap.get(row);
+			let { strategy } = rootMap.get(row);
 			let meta = await getMeta();
 			let patch = createPatch([], [row], meta);
 			let body = stringify({ patch, options });
@@ -3049,11 +3050,11 @@ function rdbClient() {
 			// eslint-disable-next-line no-undef
 			let request = { url, init: { method: 'PATCH', headers, body } };
 			let response = await sendRequest(request);
-			await handleResponse(response, () => rootMap.set(row, {strategy}));
+			await handleResponse(response, () => rootMap.set(row, { strategy }));
 		}
 
 		async function deleteRow(row, options) {
-			let {strategy} = rootMap.get(row);
+			let { strategy } = rootMap.get(row);
 			let meta = await getMeta();
 			let patch = createPatch([row], [], meta);
 			let body = stringify({ patch, options });
@@ -3063,7 +3064,7 @@ function rdbClient() {
 			// eslint-disable-next-line no-undef
 			let request = { url, init: { method: 'PATCH', headers, body } };
 			let response = await sendRequest(request);
-			await handleResponse(response, () => rootMap.set(row, {strategy}));
+			await handleResponse(response, () => rootMap.set(row, { strategy }));
 		}
 
 		async function saveRow(row, options) {
@@ -3072,14 +3073,18 @@ function rdbClient() {
 				return;
 			let meta = await getMeta();
 			let patch = createPatch([JSON.parse(json)], [row], meta);
-			let body = stringify({ patch, options: {...options, strategy }});
+			let body = stringify({ patch, options: { ...options, strategy } });
 			// eslint-disable-next-line no-undef
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
 			let request = { url, init: { method: 'PATCH', headers, body } };
 			let response = await sendRequest(request);
-			await handleResponse(response, () => rootMap.set(row, {strategy}));
+			await handleResponse(response, async (response) => {
+				let { updated } = response;
+				copyInto(updated, [row]);
+				rootMap.set(row, { strategy });
+			});
 		}
 
 		async function refreshRow(row, strategy) {
@@ -3100,7 +3105,7 @@ function rdbClient() {
 			for (let p in rows[0]) {
 				row[p] = rows[0][p];
 			}
-			rootMap.set(row, {strategy});
+			rootMap.set(row, { strategy });
 		}
 
 		function acceptChangesRow(row) {
