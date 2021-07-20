@@ -2629,6 +2629,11 @@ function rdbClient() {
 	let _reactive;
 
 	let client = rdbClient;
+	client.Concurrencies = {
+		Optimistic: 'optimistic',
+		SkipOnConflict: 'skipOnConflict',
+		Overwrite: 'overwrite'
+	};
 	client.createPatch = createPatch; //keep for legacy reasons
 	client.beforeResponse = (cb => _beforeResponse = cb);
 	client.beforeRequest = (cb => _beforeRequest = cb);
@@ -2848,6 +2853,7 @@ function rdbClient() {
 			let { original, jsonMap } = rootMap.get(array);
 			let meta = await getMeta();
 			let { added, removed, changed } = difference(original, new Set(array), jsonMap);
+			// negotiateKeys(added);
 			let insertPatch = createPatch([], added, meta);
 			let deletePatch = createPatch(removed, [], meta);
 			let updatePatch = createPatch(changed.map(x => JSON.parse(jsonMap.get(x))), changed, meta);
@@ -2862,6 +2868,34 @@ function rdbClient() {
 			let response = await sendRequest(request);
 			await handleResponse(response, () => rootMap.set(array, { jsonMap: new Map(), original: new Set(array)}));
 		}
+
+		// async function negotiateKeys(added, meta) {
+		// 	_negotiateKeys(added, await extractManyRelationsUUID(meta));
+
+		// 	function _negotiateKeys(added, meta) {
+		// 		for (let i = 0; i < meta.keys.length; i++) {
+		// 			const name = meta.keys[i].name;
+
+		// 		}
+		// 	}
+
+
+
+		// }
+
+		// async function extractManyRelationsUUID(meta) {
+		// 	meta = meta || await getMeta();
+		// 	let keys = meta.keys.filter(x => x.type === 'UUIDColumn');
+		// 	let relations = {};
+		// 	for(let p  in meta.relations) {
+		// 		let subMeta = extractManyRelationsUUID(meta.relations[p]);
+		// 		if (subMeta.keys.length > 0 || subMeta.relations.keys().length > 0)
+		// 			relations = {...relations, [p]: subMeta.relation};
+		// 	}
+		// 	return {keys, relations};
+		// }
+
+
 
 		function clearChangesArray(array) {
 			let { original, jsonMap } = rootMap.get(array);
