@@ -55,122 +55,122 @@ declare namespace RdbClient {
   }
 
   export interface StringColumn extends ColumnBase<string> {
-      startsWith(value: string): import('rdb-client').Filter;
+      startsWith(value: string | null): import('rdb-client').Filter;
       /**
        * ignore case
        */
-      iStartsWith(value: string): import('rdb-client').Filter;
-      endsWith(value: string): import('rdb-client').Filter;
+      iStartsWith(value: string | null): import('rdb-client').Filter;
+      endsWith(value: string | null): import('rdb-client').Filter;
       /**
        * ignore case
        */
-      iEndsWith(value: string): import('rdb-client').Filter;
-      contains(value: string): import('rdb-client').Filter;
+      iEndsWith(value: string | null): import('rdb-client').Filter;
+      contains(value: string | null): import('rdb-client').Filter;
       /**
        * ignore case
        */
-      iContains(value: string): import('rdb-client').Filter;
+      iContains(value: string | null): import('rdb-client').Filter;
       /**
        * ignore case
        */
-      iEqual(value: string): import('rdb-client').Filter;
+      iEqual(value: string | null): import('rdb-client').Filter;
       /**
        * equal, ignore case
        */
-      iEq(value: string): import('rdb-client').Filter;
+      iEq(value: string | null): import('rdb-client').Filter;
       /**
        * equal, ignore case
        */
-      EQ(value: string): import('rdb-client').Filter;
+      EQ(value: string | null): import('rdb-client').Filter;
       /**
        * equal, ignore case
        */
-      iEq(value: string): import('rdb-client').Filter;
+      iEq(value: string | null): import('rdb-client').Filter;
   }
 
 
   interface ColumnBase<TType> {
-      equal(value: TType): import('rdb-client').Filter;
+      equal(value: TType | null): import('rdb-client').Filter;
       /**
        * equal
        */
-      eq(value: TType): import('rdb-client').Filter;
-      notEqual(value: TType): import('rdb-client').Filter;
+      eq(value: TType | null): import('rdb-client').Filter;
+      notEqual(value: TType | null): import('rdb-client').Filter;
       /**
        * not equal
        */
-      ne(value: TType): import('rdb-client').Filter;
-      lessThan(value: TType): import('rdb-client').Filter;
+      ne(value: TType | null): import('rdb-client').Filter;
+      lessThan(value: TType | null): import('rdb-client').Filter;
       /**
        * less than
        */
-      lt(value: TType): import('rdb-client').Filter;
-      lessThanOrEqual(value: TType): import('rdb-client').Filter;
+      lt(value: TType | null): import('rdb-client').Filter;
+      lessThanOrEqual(value: TType | null): import('rdb-client').Filter;
       /**
        * less than or equal
        */
-      le(value: TType): import('rdb-client').Filter;
-      greaterThan(value: TType): import('rdb-client').Filter;
+      le(value: TType | null): import('rdb-client').Filter;
+      greaterThan(value: TType | null): import('rdb-client').Filter;
       /**
        * greater than
        */
-      gt(value: TType): import('rdb-client').Filter;
-      greaterThanOrEqual(value: TType): import('rdb-client').Filter;
+      gt(value: TType | null): import('rdb-client').Filter;
+      greaterThanOrEqual(value: TType | null): import('rdb-client').Filter;
       /**
        * greater than or equal
        */
-      ge(value: TType): import('rdb-client').Filter;
-      between(from: TType, to: TType): import('rdb-client').Filter;
-      in(values: TType[]): import('rdb-client').Filter;
+      ge(value: TType | null): import('rdb-client').Filter;
+      between(from: TType, to: TType | null): import('rdb-client').Filter;
+      in(values: TType[] | null): import('rdb-client').Filter;
   }
 
   interface ColumnBase2<TType, TType2> {
-      equal(value: TType2): import('rdb-client').Filter;
-      equal(value: TType): import('rdb-client').Filter;
+      equal(value: TType2 | null): import('rdb-client').Filter;
+      equal(value: TType | null): import('rdb-client').Filter;
       /**
        * equal
        */
-      eq(value: TType2): import('rdb-client').Filter;
-      eq(value: TType): import('rdb-client').Filter;
-      notEqual(value: TType2): import('rdb-client').Filter;
-      notEqual(value: TType): import('rdb-client').Filter;
+      eq(value: TType2 | null): import('rdb-client').Filter;
+      eq(value: TType | null): import('rdb-client').Filter;
+      notEqual(value: TType2 | null): import('rdb-client').Filter;
+      notEqual(value: TType | null): import('rdb-client').Filter;
       /**
        * not equal
        */
-      ne(value: TType2): import('rdb-client').Filter;
-      ne(value: TType): import('rdb-client').Filter;
-      lessThan(value: TType2): import('rdb-client').Filter;
-      lessThan(value: TType): import('rdb-client').Filter;
+      ne(value: TType2 | null): import('rdb-client').Filter;
+      ne(value: TType | null): import('rdb-client').Filter;
+      lessThan(value: TType2 | null): import('rdb-client').Filter;
+      lessThan(value: TType | null): import('rdb-client').Filter;
       /**
        * less than
        */
-      lt(value: TType2): import('rdb-client').Filter;
-      lt(value: TType): import('rdb-client').Filter;
-      lessThanOrEqual(value: TType2): import('rdb-client').Filter;
-      lessThanOrEqual(value: TType): import('rdb-client').Filter;
+      lt(value: TType2 | null): import('rdb-client').Filter;
+      lt(value: TType | null): import('rdb-client').Filter;
+      lessThanOrEqual(value: TType2 | null): import('rdb-client').Filter;
+      lessThanOrEqual(value: TType | null): import('rdb-client').Filter;
       /**
        * less than or equal
        */
-      le(value: TType2): import('rdb-client').Filter;
-      le(value: TType): import('rdb-client').Filter;
-      greaterThan(value: TType2): import('rdb-client').Filter;
-      greaterThan(value: TType): import('rdb-client').Filter;
+      le(value: TType2 | null): import('rdb-client').Filter;
+      le(value: TType | null): import('rdb-client').Filter;
+      greaterThan(value: TType2 | null): import('rdb-client').Filter;
+      greaterThan(value: TType | null): import('rdb-client').Filter;
       /**
        * greater than
        */
-      gt(value: TType2): import('rdb-client').Filter;
-      gt(value: TType): import('rdb-client').Filter;
-      greaterThanOrEqual(value: TType2): import('rdb-client').Filter;
-      greaterThanOrEqual(value: TType): import('rdb-client').Filter;
+      gt(value: TType2 | null): import('rdb-client').Filter;
+      gt(value: TType | null): import('rdb-client').Filter;
+      greaterThanOrEqual(value: TType2 | null): import('rdb-client').Filter;
+      greaterThanOrEqual(value: TType | null): import('rdb-client').Filter;
       /**
        * greater than or equal
        */
-      ge(value: TType2): import('rdb-client').Filter;
-      ge(value: TType): import('rdb-client').Filter;
-      between(from: TType2, to: TType): import('rdb-client').Filter;
-      between(from: TType, to: TType): import('rdb-client').Filter;
-      in(values: TType2[]): import('rdb-client').Filter;
-      in(values: TType[]): import('rdb-client').Filter;
+      ge(value: TType2 | null): import('rdb-client').Filter;
+      ge(value: TType | null): import('rdb-client').Filter;
+      between(from: TType2, to: TType | null): import('rdb-client').Filter;
+      between(from: TType, to: TType | null): import('rdb-client').Filter;
+      in(values: TType2[] | null): import('rdb-client').Filter;
+      in(values: TType[] | null): import('rdb-client').Filter;
   }
 
 
