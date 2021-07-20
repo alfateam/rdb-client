@@ -33,7 +33,7 @@ module.exports = function createPatch(original, dto, options) {
 				if (options && options.keys && element === Object(element)) {
 					let key = [];
 					for (let i = 0; i < options.keys.length; i++) {
-						let keyName = options.keys[i];
+						let keyName = options.keys[i].name;
 						key.push(element[keyName]);
 					}
 					copy[stringify(key)] = element;
