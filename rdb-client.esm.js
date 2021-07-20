@@ -2673,9 +2673,7 @@ function rdbClient() {
 		async function getMany(_, strategy) {
 			let args = Array.prototype.slice.call(arguments);
 			let rows = await getManyCore.apply(null, args);
-			let proxies = proxify(rows);
-			rootMap.get(rows).strategy = strategy;
-			return proxies;
+			return proxify(rows, strategy);
 		}
 
 		async function tryGetFirst(filter, strategy) {
@@ -2686,9 +2684,7 @@ function rdbClient() {
 			let rows = await getManyCore.apply(null, args);
 			if (rows.length === 0)
 				return;
-			let proxies = proxify(rows[0]);
-			rootMap.get(rows[0]).strategy = _strategy;
-			return proxies;
+			return proxify(rows[0], strategy);
 		}
 
 		async function tryGetById() {
@@ -2734,14 +2730,14 @@ function rdbClient() {
 			}
 		}
 
-		function proxify(itemOrArray) {
+		function proxify(itemOrArray, strategy) {
 			if (Array.isArray(itemOrArray))
-				return proxifyArray(itemOrArray);
+				return proxifyArray(itemOrArray, strategy);
 			else
-				return proxifyRow(itemOrArray);
+				return proxifyRow(itemOrArray, strategy);
 		}
 
-		function proxifyArray(array) {
+		function proxifyArray(array, strategy) {
 			if (_reactive)
 				array = _reactive(array);
 			let enabled = false;
@@ -2766,7 +2762,7 @@ function rdbClient() {
 			};
 			let innerProxy = new Proxy(array, handler);
 			let arrayProxy = onChange(innerProxy, () => { }, { pathAsArray: true, ignoreDetached: true, onValidate });
-			rootMap.set(array, { jsonMap: new Map(), original: new Set(array) });
+			rootMap.set(array, { jsonMap: new Map(), original: new Set(array) , strategy});
 			enabled = true;
 			return arrayProxy;
 
@@ -2782,7 +2778,7 @@ function rdbClient() {
 			}
 		}
 
-		function proxifyRow(row) {
+		function proxifyRow(row, strategy) {
 			let enabled = false;
 			let handler = {
 				get(_target, property,) {
@@ -2805,7 +2801,7 @@ function rdbClient() {
 			};
 			let innerProxy = new Proxy(row, handler);
 			let rowProxy = onChange(innerProxy, () => { }, { pathAsArray: true, ignoreDetached: true, onValidate });
-			rootMap.set(row, { jsonMap: new Map() });
+			rootMap.set(row, { jsonMap: new Map(), strategy });
 			enabled = true;
 			return rowProxy;
 
@@ -3003,8 +2999,8 @@ function rdbClient() {
 				return rowsMap.get(keyValue);
 		}
 
-		async function refreshArray(array) {
-			let strategy = rootMap.get(array).strategy;
+		async function refreshArray(array, strategy) {
+			strategy = strategy || rootMap.get(array).strategy;
 			if (array.length === 0)
 				return;
 			let meta = await getMeta();
@@ -3021,8 +3017,7 @@ function rdbClient() {
 				setMapValue(rowsMap, meta.keys, row, rowIndex);
 				filter = filter.or(keyFilter);
 			}
-			let args = [filter].concat(Array.prototype.slice.call(arguments).slice(1));
-			let rows = await getManyCore.apply(null, args);
+			let rows = await getManyCore(filter, strategy);
 			let removedIndexes = new Set();
 			if (array.length !== rows.length)
 				for (var i = 0; i < array.length; i++) {
@@ -3044,6 +3039,7 @@ function rdbClient() {
 		}
 
 		async function insertRow(row, options) {
+			let {strategy} = rootMap.get(row);
 			let meta = await getMeta();
 			let patch = createPatch([], [row], meta);
 			let body = stringify({ patch, options });
@@ -3053,10 +3049,11 @@ function rdbClient() {
 			// eslint-disable-next-line no-undef
 			let request = { url, init: { method: 'PATCH', headers, body } };
 			let response = await sendRequest(request);
-			await handleResponse(response, () => rootMap.set(row, {}));
+			await handleResponse(response, () => rootMap.set(row, {strategy}));
 		}
 
 		async function deleteRow(row, options) {
+			let {strategy} = rootMap.get(row);
 			let meta = await getMeta();
 			let patch = createPatch([row], [], meta);
 			let body = stringify({ patch, options });
@@ -3066,26 +3063,27 @@ function rdbClient() {
 			// eslint-disable-next-line no-undef
 			let request = { url, init: { method: 'PATCH', headers, body } };
 			let response = await sendRequest(request);
-			await handleResponse(response, () => rootMap.set(row, {}));
+			await handleResponse(response, () => rootMap.set(row, {strategy}));
 		}
 
 		async function saveRow(row, options) {
-			let { json } = rootMap.get(row);
+			let { json, strategy } = rootMap.get(row);
 			if (!json)
 				return;
 			let meta = await getMeta();
 			let patch = createPatch([JSON.parse(json)], [row], meta);
-			let body = stringify({ patch, options });
+			let body = stringify({ patch, options: {...options, strategy }});
 			// eslint-disable-next-line no-undef
 			var headers = new Headers();
 			headers.append('Content-Type', 'application/json');
 			// eslint-disable-next-line no-undef
 			let request = { url, init: { method: 'PATCH', headers, body } };
 			let response = await sendRequest(request);
-			await handleResponse(response, () => rootMap.set(row, {}));
+			await handleResponse(response, () => rootMap.set(row, {strategy}));
 		}
 
-		async function refreshRow(row) {
+		async function refreshRow(row, strategy) {
+			strategy = strategy || rootMap.get(row);
 			let meta = await getMeta();
 			let keyFilter = client.filter;
 			for (let i = 0; i < meta.keys.length; i++) {
@@ -3093,8 +3091,7 @@ function rdbClient() {
 				let keyValue = row[keyName];
 				keyFilter = keyFilter.and(_table[keyName].eq(keyValue));
 			}
-			let args = [keyFilter].concat(Array.prototype.slice.call(arguments).slice(1));
-			let rows = await getManyCore.apply(null, args);
+			let rows = await getManyCore.apply(keyFilter, strategy);
 			for (let p in row) {
 				delete row[p];
 			}
@@ -3103,7 +3100,7 @@ function rdbClient() {
 			for (let p in rows[0]) {
 				row[p] = rows[0][p];
 			}
-			rootMap.set(row, {});
+			rootMap.set(row, {strategy});
 		}
 
 		function acceptChangesRow(row) {
