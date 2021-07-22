@@ -2831,7 +2831,7 @@ function rdbClient() {
 				return response;
 
 			let shouldRetry;
-			await _beforeResponse(response, { retry, attempts, request: init });
+			await _beforeResponse(response.clone(), { retry, attempts, request: init });
 			if (shouldRetry)
 				return sendRequest({ url, init }, { attempts: ++attempts });
 			return response;

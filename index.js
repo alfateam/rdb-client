@@ -215,12 +215,10 @@ function rdbClient() {
 				return response;
 
 			let shouldRetry;
-			let response1 = response.clone();
-			let response2 = response.clone();
-			await _beforeResponse(response1, { retry, attempts, request: init });
+			await _beforeResponse(response.clone(), { retry, attempts, request: init });
 			if (shouldRetry)
 				return sendRequest({ url, init }, { attempts: ++attempts });
-			return response2;
+			return response;
 
 			function retry() {
 				shouldRetry = true;
