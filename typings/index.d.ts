@@ -167,10 +167,8 @@ declare namespace RdbClient {
        */
       ge(value: TType2 | null): import('rdb-client').Filter;
       ge(value: TType | null): import('rdb-client').Filter;
-      between(from: TType2, to: TType | null): import('rdb-client').Filter;
-      between(from: TType, to: TType | null): import('rdb-client').Filter;
-      in(values: TType2[] | null): import('rdb-client').Filter;
-      in(values: TType[] | null): import('rdb-client').Filter;
+      between(from: TType | TType2, to: TType | TType2): import('rdb-client').Filter;
+      in(values: Array<TType | TType2>[] | null): import('rdb-client').Filter;
   }
 
 
