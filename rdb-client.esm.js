@@ -2640,13 +2640,17 @@ let _dir = console.dir;
 console.log = function(obj) {
 	let inner = proxyMap.get(obj);
 	if (inner)
-		return _log.apply(this, [inner].concat(arguments.slice(1)));
+		return _log.apply(console, [inner].concat(arguments.slice(1)));
+	else
+		return _log.apply(console, arguments);
 };
 
 console.dir = function(obj) {
 	let inner = proxyMap.get(obj);
 	if (inner)
 		return _dir.apply(this, [inner].concat(arguments.slice(1)));
+	else
+		return _dir.apply(this, arguments);
 };
 
 function rdbClient() {
