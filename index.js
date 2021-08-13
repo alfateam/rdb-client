@@ -3,6 +3,22 @@ let createPatch = require('./createPatch');
 let stringify = require('./stringify');
 require('isomorphic-fetch');
 let rootMap = new WeakMap();
+let proxyMap = new WeakMap();
+
+let _log = console.log;
+let _dir = console.dir;
+
+console.log = function(obj) {
+	let inner = proxyMap.get(obj);
+	if (inner)
+		return _log.apply(this, [inner].concat(arguments.slice(1)));
+};
+
+console.dir = function(obj) {
+	let inner = proxyMap.get(obj);
+	if (inner)
+		return _dir.apply(this, [inner].concat(arguments.slice(1)));
+};
 
 function rdbClient() {
 	let _beforeResponse;
@@ -120,11 +136,14 @@ function rdbClient() {
 		}
 
 		function proxifyArray(array, strategy) {
+			let _array = array;
 			if (_reactive)
 				array = _reactive(array);
 			let enabled = false;
 			let handler = {
-				get(_target, property,) {
+				get(_target, property) {
+					if (property === 'toJSON')
+						return () => _target;
 					if (property === 'save')
 						return saveArray.bind(null, array);
 					else if (property === 'insert')
@@ -138,7 +157,7 @@ function rdbClient() {
 					else if (property === 'acceptChanges')
 						return acceptChangesArray.bind(null, array);
 					else
-						return Reflect.get(...arguments);
+						return Reflect.get.apply(_array, arguments);
 				}
 
 			};
@@ -146,6 +165,7 @@ function rdbClient() {
 			let arrayProxy = onChange(innerProxy, () => { }, { pathAsArray: true, ignoreDetached: true, onValidate });
 			rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
 			enabled = true;
+			proxyMap.set(arrayProxy, _array);
 			return arrayProxy;
 
 			function onValidate(path) {
@@ -185,6 +205,7 @@ function rdbClient() {
 			let rowProxy = onChange(innerProxy, () => { }, { pathAsArray: true, ignoreDetached: true, onValidate });
 			rootMap.set(row, { jsonMap: new Map(), strategy });
 			enabled = true;
+			proxyMap.set(rowProxy, row);
 			return rowProxy;
 
 			function onValidate() {
