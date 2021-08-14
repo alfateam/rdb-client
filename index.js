@@ -3,26 +3,29 @@ let createPatch = require('./createPatch');
 let stringify = require('./stringify');
 require('isomorphic-fetch');
 let rootMap = new WeakMap();
-let proxyMap = new WeakMap();
+let targetKey  = Symbol();
 
-let _log = console.log;
-let _dir = console.dir;
+overrideConsole();
 
-console.log = function(obj) {
-	let inner = proxyMap.get(obj);
-	if (inner)
-		return _log.apply(console, [inner].concat(arguments.slice(1)));
-	else
-		return _log.apply(console, arguments);
-};
+function overrideConsole() {
+	let options = ['log', 'dir', 'time', 'timeEnd'];
+	for(let p of options) {
+		let original = console[p];
+		console[p] = consoleFn.bind(original);
+	}
 
-console.dir = function(obj) {
-	let inner = proxyMap.get(obj);
-	if (inner)
-		return _dir.apply(this, [inner].concat(arguments.slice(1)));
-	else
-		return _dir.apply(this, arguments);
-};
+	function consoleFn() {
+		let [obj, ...args] = arguments;
+		if (obj[targetKey]) {
+			let inner = onChange.target(obj) ? onChange.target(obj)[targetKey] : obj[targetKey];
+			return this.apply(console, [inner].concat(args));
+		}
+		else
+			return this.apply(console, arguments);
+	}
+}
+
+
 
 function rdbClient() {
 	let _beforeResponse;
@@ -160,6 +163,8 @@ function rdbClient() {
 						return clearChangesArray.bind(null, array);
 					else if (property === 'acceptChanges')
 						return acceptChangesArray.bind(null, array);
+					else if (property === targetKey)
+						return _array;
 					else
 						return Reflect.get.apply(_array, arguments);
 				}
@@ -169,7 +174,6 @@ function rdbClient() {
 			let arrayProxy = onChange(innerProxy, () => { }, { pathAsArray: true, ignoreDetached: true, onValidate });
 			rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
 			enabled = true;
-			proxyMap.set(arrayProxy, _array);
 			return arrayProxy;
 
 			function onValidate(path) {
@@ -200,6 +204,8 @@ function rdbClient() {
 						return clearChangesRow.bind(null, row);
 					else if (property === 'acceptChanges') //remove from jsonMap
 						return acceptChangesRow.bind(null, row);
+					else if (property === targetKey)
+						return row;
 					else
 						return Reflect.get(...arguments);
 				}
@@ -209,7 +215,6 @@ function rdbClient() {
 			let rowProxy = onChange(innerProxy, () => { }, { pathAsArray: true, ignoreDetached: true, onValidate });
 			rootMap.set(row, { jsonMap: new Map(), strategy });
 			enabled = true;
-			proxyMap.set(rowProxy, row);
 			return rowProxy;
 
 			function onValidate() {
