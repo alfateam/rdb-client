@@ -1,7 +1,7 @@
 let onChange = require('on-change');
 let createPatch = require('./createPatch');
 let stringify = require('./stringify');
-require('isomorphic-fetch');
+let netAdapter = require('./netAdapter');
 let rootMap = new WeakMap();
 let targetKey  = Symbol();
 
@@ -25,22 +25,23 @@ function overrideConsole() {
 	}
 }
 
+function rdbClient(baseUrl, options = {}) {
+	let beforeResponse = options.beforeResponse;
+	let beforeRequest = options.beforeRequest;
+	let _reactive = options.reactive;
 
+	function client(baseUrl) {
+		return rdbClient(baseUrl, client);
+	}
 
-function rdbClient() {
-	let _beforeResponse;
-	let _beforeRequest;
-	let _reactive;
-
-	let client = rdbClient;
 	client.Concurrencies = {
 		Optimistic: 'optimistic',
 		SkipOnConflict: 'skipOnConflict',
 		Overwrite: 'overwrite'
 	};
 	client.createPatch = createPatch; //keep for legacy reasons
-	client.beforeResponse = (cb => _beforeResponse = cb);
-	client.beforeRequest = (cb => _beforeRequest = cb);
+	client.beforeResponse = (cb => beforeResponse = cb);
+	client.beforeRequest = (cb => beforeRequest = cb);
 	client.reactive = (cb => _reactive = cb);
 	client.table = table;
 	client.or = column('or');
@@ -52,7 +53,9 @@ function rdbClient() {
 		not: client.not,
 	};
 
-	function table(url) {
+	function table(url, tableOptions) {
+		if (baseUrl && typeof url === 'string')
+			url = baseUrl + url;
 		let meta;
 		let c = {
 			getManyDto: getMany,
@@ -119,20 +122,20 @@ function rdbClient() {
 				path: 'getManyDto',
 				args
 			});
-			// eslint-disable-next-line no-undef
-			var headers = new Headers();
-			headers.append('Content-Type', 'application/json');
-			// eslint-disable-next-line no-undef
-			let response = await sendRequest({ url, init: { method: 'POST', headers, body } });
-			if (response.status === 200) {
-				return await response.json();
-			}
-			else {
-				let msg = response.json && await response.json() || `Status ${response.status} from server`;
-				let e = new Error(msg);
-				e.status = response.status;
-				throw e;
-			}
+			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
+			return adapter.post(body);
+			// var headers = new Headers();
+			// headers.append('Content-Type', 'application/json');
+			// let response = await sendRequest({ url, init: { method: 'POST', headers, body } });
+			// if (response.status === 200) {
+			// 	return await response.json();
+			// }
+			// else {
+			// 	let msg = response.json && await response.json() || `Status ${response.status} from server`;
+			// 	let e = new Error(msg);
+			// 	e.status = response.status;
+			// 	throw e;
+			// }
 		}
 
 		function proxify(itemOrArray, strategy) {
@@ -230,40 +233,43 @@ function rdbClient() {
 		async function getMeta() {
 			if (meta)
 				return meta;
-			// eslint-disable-next-line no-undef
-			var headers = new Headers();
-			headers.append('Content-Type', 'application/json');
-			headers.append('Accept', 'application/json');
-			// eslint-disable-next-line no-undef
-			let request = { url, init: { method: 'GET', headers } };
-			let response = await sendRequest(request);
-			return handleResponse(response, () => response.json());
+			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
+			return adapter.get();
+
+
+			// var headers = new Headers();
+			// headers.append('Content-Type', 'application/json');
+			// headers.append('Accept', 'application/json');
+			// // eslint-disble-next-line no-undef
+			// let request = { url, init: { method: 'GET', headers } };
+			// let response = await sendRequest(request);
+			// return handleResponse(response, () => response.json());
 		}
 
-		async function beforeResponse(response, { url, init, attempts }) {
-			if (!_beforeResponse)
-				return response;
+		// async function beforeResponse(response, { url, init, attempts }) {
+		// 	if (!_beforeResponse)
+		// 		return response;
 
-			let shouldRetry;
-			await _beforeResponse(response.clone(), { retry, attempts, request: init });
-			if (shouldRetry)
-				return sendRequest({ url, init }, { attempts: ++attempts });
-			return response;
+		// 	let shouldRetry;
+		// 	await _beforeResponse(response.clone(), { retry, attempts, request: init });
+		// 	if (shouldRetry)
+		// 		return sendRequest({ url, init }, { attempts: ++attempts });
+		// 	return response;
 
-			function retry() {
-				shouldRetry = true;
-			}
-		}
+		// 	function retry() {
+		// 		shouldRetry = true;
+		// 	}
+		// }
 
-		async function sendRequest({ url, init }, { attempts = 0 } = {}) {
-			if (_beforeRequest) {
-				init = await _beforeRequest(init) || init;
-			}
-			// eslint-disable-next-line no-undef
-			let request = new Request(url, init);
-			// eslint-disable-next-line no-undef
-			return beforeResponse(await fetch(request), { url, init, attempts });
-		}
+		// async function sendRequest({ url, init }, { attempts = 0 } = {}) {
+		// 	if (_beforeRequest) {
+		// 		init = await _beforeRequest(init) || init;
+		// 	}
+		// 	// eslint-disable-next-line no-undef
+		// 	let request = new Request(url, init);
+		// 	// eslint-disable-next-line no-undef
+		// 	return beforeResponse(await fetch(request), { url, init, attempts });
+		// }
 
 		async function saveArray(array, options) {
 			let { original, jsonMap, strategy } = rootMap.get(array);
@@ -275,18 +281,24 @@ function rdbClient() {
 			let patch = [...insertPatch, ...updatePatch, ...deletePatch];
 
 			let body = stringify({ patch, options: { ...options, strategy } });
-			// eslint-disable-next-line no-undef
-			var headers = new Headers();
-			headers.append('Content-Type', 'application/json');
-			// eslint-disable-next-line no-undef
-			let request = { url, init: { method: 'PATCH', headers, body } };
-			let response = await sendRequest(request);
-			await handleResponse(response, async (response) => {
-				let { updated, inserted } = await response.json();
-				copyInto(updated, changed);
-				copyInto(inserted, added);
-				rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
-			});
+			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
+			let { updated, inserted } = await adapter.patch(body);
+			copyInto(updated, changed);
+			copyInto(inserted, added);
+			rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
+
+
+
+			// var headers = new Headers();
+			// headers.append('Content-Type', 'application/json');
+			// let request = { url, init: { method: 'PATCH', headers, body } };
+			// let response = await sendRequest(request);
+			// await handleResponse(response, async (response) => {
+			// 	let { updated, inserted } = await response.json();
+			// 	copyInto(updated, changed);
+			// 	copyInto(inserted, added);
+			// 	rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
+			// });
 		}
 
 		function copyInto(from, to) {
@@ -349,28 +361,34 @@ function rdbClient() {
 			let meta = await getMeta();
 			let insertPatch = createPatch([], array, meta);
 			let body = stringify(insertPatch);
-			// eslint-disable-next-line no-undef
-			var headers = new Headers();
-			headers.append('Content-Type', 'application/json');
-			// eslint-disable-next-line no-undef
-			let request = { url, init: { method: 'PATCH', headers, body } };
-			// eslint-disable-next-line no-undef
+
+			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
+			await adapter.patch(body);
 			let strategy = rootMap.get(array).strategy;
-			let response = await sendRequest(request);
-			await handleResponse(response, () => rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy }));
+			rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
+
+			// // eslint-disable-next-line no-undef
+			// var headers = new Headers();
+			// headers.append('Content-Type', 'application/json');
+			// // eslint-disable-next-line no-undef
+			// let request = { url, init: { method: 'PATCH', headers, body } };
+			// // eslint-disable-next-line no-undef
+			// let response = await sendRequest(request);
+
+			// await handleResponse(response, () => rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy }));
 		}
 
-		async function handleResponse(response, onSuccess) {
-			if (response.status >= 200 && response.status < 300) {
-				return onSuccess(response);
-			}
-			else {
-				let msg = response.text && await response.text() || `Status ${response.status} from server`;
-				let e = new Error(msg);
-				e.status = response.status;
-				throw e;
-			}
-		}
+		// async function handleResponse(response, onSuccess) {
+		// 	if (response.status >= 200 && response.status < 300) {
+		// 		return onSuccess(response);
+		// 	}
+		// 	else {
+		// 		let msg = response.text && await response.text() || `Status ${response.status} from server`;
+		// 		let e = new Error(msg);
+		// 		e.status = response.status;
+		// 		throw e;
+		// 	}
+		// }
 
 
 		async function deleteArray(array, options) {
@@ -379,17 +397,11 @@ function rdbClient() {
 			let meta = await getMeta();
 			let patch = createPatch(array, [], meta);
 			let body = stringify({ patch, options });
-			// eslint-disable-next-line no-undef
-			var headers = new Headers();
-			headers.append('Content-Type', 'application/json');
-			// eslint-disable-next-line no-undef
-			let request = { url, init: { method: 'PATCH', headers, body } };
-			let response = await sendRequest(request);
+			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
+			await adapter.patch(body);
 			let strategy = rootMap.get(array).strategy;
-			await handleResponse(response, () => {
-				array.length = 0;
-				rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
-			});
+			array.length = 0;
+			rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
 		}
 
 		function setMapValue(rowsMap, keys, row, index) {
@@ -458,13 +470,10 @@ function rdbClient() {
 			let meta = await getMeta(url);
 			let patch = createPatch([], [row], meta);
 			let body = stringify({ patch, options });
-			// eslint-disable-next-line no-undef
-			var headers = new Headers();
-			headers.append('Content-Type', 'application/json');
-			// eslint-disable-next-line no-undef
-			let request = { url, init: { method: 'PATCH', headers, body } };
-			let response = await sendRequest(request);
-			await handleResponse(response, () => rootMap.set(row, { strategy }));
+
+			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
+			await adapter.patch(body);
+			rootMap.set(row, { strategy });
 		}
 
 		async function deleteRow(row, options) {
@@ -472,13 +481,10 @@ function rdbClient() {
 			let meta = await getMeta(url);
 			let patch = createPatch([row], [], meta);
 			let body = stringify({ patch, options });
-			// eslint-disable-next-line no-undef
-			var headers = new Headers();
-			headers.append('Content-Type', 'application/json');
-			// eslint-disable-next-line no-undef
-			let request = { url, init: { method: 'PATCH', headers, body } };
-			let response = await sendRequest(request);
-			await handleResponse(response, () => rootMap.set(row, { strategy }));
+
+			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
+			await adapter.patch(body);
+			rootMap.set(row, { strategy });
 		}
 
 		async function saveRow(row, options) {
@@ -488,17 +494,11 @@ function rdbClient() {
 			let meta = await getMeta(url);
 			let patch = createPatch([JSON.parse(json)], [row], meta);
 			let body = stringify({ patch, options: { ...options, strategy } });
-			// eslint-disable-next-line no-undef
-			var headers = new Headers();
-			headers.append('Content-Type', 'application/json');
-			// eslint-disable-next-line no-undef
-			let request = { url, init: { method: 'PATCH', headers, body } };
-			let response = await sendRequest(request);
-			await handleResponse(response, async (response) => {
-				let { updated } = response;
-				copyInto(updated, [row]);
-				rootMap.set(row, { strategy });
-			});
+
+			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
+			let { updated } = await adapter.patch(body);
+			copyInto(updated, [row]);
+			rootMap.set(row, { strategy });
 		}
 
 		async function refreshRow(row, strategy) {
