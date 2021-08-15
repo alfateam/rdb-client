@@ -32,7 +32,8 @@
   "dependencies": {
     "isomorphic-fetch": "^3.0.0",
     "on-change": "^3.0.2",
-    "rfc6902": "^3.0.4"
+    "rfc6902": "^3.0.4",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "rollup": "^2.52.7",

@@ -1,6 +1,7 @@
 let rfc = require('rfc6902');
 let dateToIsoString = require('./dateToIsoString');
 let stringify = require('./stringify');
+let {v4: uuid} = require('uuid');
 
 module.exports = function createPatch(original, dto, options) {
 	let clonedOriginal = toCompareObject(original, options);
@@ -34,7 +35,7 @@ module.exports = function createPatch(original, dto, options) {
 					let key = [];
 					for (let i = 0; i < options.keys.length; i++) {
 						let keyName = options.keys[i].name;
-						key.push(element[keyName]);
+						key.push(negotiateTempKey(element[keyName]));
 					}
 					copy[stringify(key)] = element;
 				}
@@ -59,6 +60,13 @@ module.exports = function createPatch(original, dto, options) {
 
 	function isValidDate(d) {
 		return d instanceof Date && !isNaN(d);
+	}
+
+	function negotiateTempKey(value) {
+		if (value === undefined)
+			return `~${uuid()}`;
+		else
+			return value;
 	}
 
 };

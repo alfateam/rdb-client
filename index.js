@@ -245,7 +245,7 @@ function rdbClient(baseUrl, options = {}) {
 		function copyInto(from, to) {
 			for (let i = 0; i < from.length; i++) {
 				for (let p in from[i]) {
-					to[p] = from[p];
+					to[i][p] = from[i][p];
 				}
 			}
 		}
