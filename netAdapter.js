@@ -74,9 +74,9 @@ function httpAdapter(url, {beforeRequest : _beforeRequest, beforeResponse: _befo
 
 }
 
-function createNetAdapter(url, options) {
+function createNetAdapter(url, options = {}) {
 	if (url.hostLocal)
-		return url.hostLocal({table: url, ...options});
+		return url.hostLocal(options.tableOptions);
 	else
 		return httpAdapter(url, options);
 }

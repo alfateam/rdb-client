@@ -246,7 +246,6 @@ function rdbClient(baseUrl, options = {}) {
 			for (let i = 0; i < from.length; i++) {
 				for (let p in from[i]) {
 					to[p] = from[p];
-					console.log(to[p]);
 				}
 			}
 		}
