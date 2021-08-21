@@ -252,22 +252,15 @@ function rdbClient(baseUrl, options = {}) {
 			}
 		}
 
-		async function getDefaultStrategy(meta) {
-			meta = meta || await getMeta();
-			let relations = {};
-			for (let p in meta.relations) {
-				relations[p] = getDefaultStrategy(meta.relations[p]);
-			}
-			return relations;
-		}
-
 		function extractStrategy(options, obj) {
 			if (options && 'strategy' in options)
 				return options.strategy;
 			if (obj) {
 				let context = rootMap.get(obj);
-				if (context.strategy !== undefined)
-					context.strategy;
+				if (context.strategy !== undefined) {
+					let {limit, ...strategy} = context.strategy;
+					return strategy;
+				}
 			}
 			if (tableOptions)
 				return tableOptions.strategy;
