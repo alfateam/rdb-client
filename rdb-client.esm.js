@@ -3340,26 +3340,6 @@ let netAdapter = netAdapter$1;
 let rootMap = new WeakMap();
 let targetKey  = Symbol();
 
-overrideConsole();
-
-function overrideConsole() {
-	let options = ['log', 'dir', 'time', 'timeEnd'];
-	for(let p of options) {
-		let original = console[p];
-		console[p] = consoleFn.bind(original);
-	}
-
-	function consoleFn() {
-		let [obj, ...args] = arguments;
-		if (obj[targetKey]) {
-			let inner = onChange.target(obj) ? onChange.target(obj)[targetKey] : obj[targetKey];
-			return this.apply(console, [inner].concat(args));
-		}
-		else
-			return this.apply(console, arguments);
-	}
-}
-
 function rdbClient(baseUrl, options = {}) {
 	let beforeResponse = options.beforeResponse;
 	let beforeRequest = options.beforeRequest;
@@ -3394,6 +3374,7 @@ function rdbClient(baseUrl, options = {}) {
 		let c = {
 			getManyDto: getMany,
 			getMany,
+			getOne: tryGetFirst,
 			tryGetFirst,
 			tryGetById,
 			getById,
@@ -3413,15 +3394,15 @@ function rdbClient(baseUrl, options = {}) {
 		return _table;
 
 		async function getMany(_, strategy) {
+			strategy = extractStrategy({strategy});
 			let args = Array.prototype.slice.call(arguments);
 			let rows = await getManyCore.apply(null, args);
 			return proxify(rows, strategy);
 		}
 
 		async function tryGetFirst(filter, strategy) {
-			if (strategy === undefined)
-				strategy = await getDefaultStrategy();
-			let _strategy = { ...(strategy), ...{ limit: 1 } };
+			strategy = extractStrategy({strategy});
+			let _strategy = { ...strategy, ...{ limit: 1 } };
 			let args = [filter, _strategy].concat(Array.prototype.slice.call(arguments).slice(2));
 			let rows = await getManyCore.apply(null, args);
 			if (rows.length === 0)
@@ -3558,7 +3539,8 @@ function rdbClient(baseUrl, options = {}) {
 		}
 
 		async function saveArray(array, options) {
-			let { original, jsonMap, strategy } = rootMap.get(array);
+			let { original, jsonMap } = rootMap.get(array);
+			let strategy = extractStrategy(options, array);
 			let meta = await getMeta();
 			let { added, removed, changed } = difference(original, new Set(array), jsonMap);
 			let insertPatch = createPatch([], added, meta);
@@ -3566,34 +3548,34 @@ function rdbClient(baseUrl, options = {}) {
 			let updatePatch = createPatch(changed.map(x => JSON.parse(jsonMap.get(x))), changed, meta);
 			let patch = [...insertPatch, ...updatePatch, ...deletePatch];
 
-			let body = stringify({ patch, options: { ...options, strategy } });
+			let body = stringify({ patch, options: { strategy, ...options} });
 			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
 			let { updated, inserted } = await adapter.patch(body);
-			console.log('inserted');
-			console.log(inserted);
 			copyInto(updated, changed);
 			copyInto(inserted, added);
-			console.log('added');
-			console.log(added);
 			rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
 		}
 
 		function copyInto(from, to) {
 			for (let i = 0; i < from.length; i++) {
 				for (let p in from[i]) {
-					console.log(p);
 					to[i][p] = from[i][p];
 				}
 			}
 		}
 
-		async function getDefaultStrategy(meta) {
-			meta = meta || await getMeta();
-			let relations = {};
-			for (let p in meta.relations) {
-				relations[p] = getDefaultStrategy(meta.relations[p]);
+		function extractStrategy(options, obj) {
+			if (options && 'strategy' in options)
+				return options.strategy;
+			if (obj) {
+				let context = rootMap.get(obj);
+				if (context.strategy !== undefined) {
+					let {limit, ...strategy} = context.strategy;
+					return strategy;
+				}
 			}
-			return relations;
+			if (tableOptions)
+				return tableOptions.strategy;
 		}
 
 
@@ -3632,17 +3614,17 @@ function rdbClient(baseUrl, options = {}) {
 			rootMap.set(array, { jsonMap: new Map(), original: new Set(array) });
 		}
 
-		async function insertArray(array) {
+		async function insertArray(array, options) {
 			if (array.length === 0)
 				return;
+			let strategy = extractStrategy(options);
 			let meta = await getMeta();
 			let insertPatch = createPatch([], array, meta);
-			let body = stringify(insertPatch);
 
+			let body = stringify({ insertPatch, options: { strategy, ...options} });
 			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
 			let { inserted } = await adapter.patch(body);
 			copyInto(inserted, array);
-			let strategy = rootMap.get(array).strategy;
 			rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
 		}
 
@@ -3681,8 +3663,8 @@ function rdbClient(baseUrl, options = {}) {
 				return rowsMap.get(keyValue);
 		}
 
-		async function refreshArray(array, strategy) {
-			strategy = strategy || rootMap.get(array).strategy;
+		async function refreshArray(array, options) {
+			let strategy = extractStrategy(options);
 			if (array.length === 0)
 				return;
 			let meta = await getMeta();
@@ -3721,7 +3703,7 @@ function rdbClient(baseUrl, options = {}) {
 		}
 
 		async function insertRow(row, options) {
-			let { strategy } = rootMap.get(row);
+			let strategy = extractStrategy(options, row);
 			let meta = await getMeta();
 			let patch = createPatch([], [row], meta);
 			let body = stringify({ patch, options });
@@ -3733,7 +3715,7 @@ function rdbClient(baseUrl, options = {}) {
 		}
 
 		async function deleteRow(row, options) {
-			let { strategy } = rootMap.get(row);
+			let strategy = extractStrategy(options, row);
 			let meta = await getMeta();
 			let patch = createPatch([row], [], meta);
 			let body = stringify({ patch, options });
@@ -3744,7 +3726,8 @@ function rdbClient(baseUrl, options = {}) {
 		}
 
 		async function saveRow(row, options) {
-			let { json, strategy } = rootMap.get(row);
+			let strategy = extractStrategy(options, row);
+			let { json } = rootMap.get(row);
 			if (!json)
 				return;
 			let meta = await getMeta();
@@ -3757,8 +3740,8 @@ function rdbClient(baseUrl, options = {}) {
 			rootMap.set(row, { strategy });
 		}
 
-		async function refreshRow(row, strategy) {
-			strategy = strategy || rootMap.get(row);
+		async function refreshRow(row, options) {
+			let strategy = extractStrategy(options, row);
 			let meta = await getMeta();
 			let keyFilter = client.filter;
 			for (let i = 0; i < meta.keys.length; i++) {
