@@ -85,6 +85,10 @@ function rdbClient(baseUrl, options = {}) {
 	function table(url, tableOptions) {
 		if (baseUrl && typeof url === 'string')
 			url = baseUrl + url;
+		else if (baseUrl && baseUrl.transaction) {
+			tableOptions = tableOptions || {};
+			tableOptions = {db: baseUrl, ...tableOptions};
+		}
 		let meta;
 		let c = {
 			getManyDto: getMany,
