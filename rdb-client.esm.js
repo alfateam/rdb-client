@@ -3367,10 +3367,43 @@ function rdbClient(baseUrl, options = {}) {
 		and: client.and,
 		not: client.not,
 	};
+	client.query = query;
+	client.transaction = transaction;
+
+	function transaction() {
+		//todo
+	}
+
+	async function query() {
+		let args = arguments;
+		return runInTransaction((db) => db.query.apply(null, args));
+	}
+
+	async function runInTransaction(fn) {
+		let db = baseUrl;
+		if (typeof db === 'function') {
+			let dbPromise = db();
+			if (dbPromise.then)
+				db = await dbPromise;
+			else
+				db = dbPromise;
+		}
+		if (!db.transaction)
+			throw new Error("Illegal operation");
+		let result;
+		await db.transaction(async() => {
+			result = fn(db);
+		});
+		return result;
+	}
 
 	function table(url, tableOptions) {
 		if (baseUrl && typeof url === 'string')
 			url = baseUrl + url;
+		else if (baseUrl && baseUrl.transaction) {
+			tableOptions = tableOptions || {};
+			tableOptions = {db: baseUrl, ...tableOptions};
+		}
 		let c = {
 			getManyDto: getMany,
 			getMany,
