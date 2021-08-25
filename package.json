@@ -31,7 +31,7 @@
   "homepage": "https://github.com/alfateam/rdb-client/blob/master/README.md",
   "dependencies": {
     "isomorphic-fetch": "^3.0.0",
-    "on-change": "^3.0.2",
+    "on-change": "^2.2.3",
     "rfc6902": "^3.0.4",
     "uuid": "^8.3.2"
   },
