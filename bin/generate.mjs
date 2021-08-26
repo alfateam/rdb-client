@@ -17,7 +17,7 @@ const copyFile = util.promisify(fs.copyFile);
 
 const indexSource = fileUrl(path.join(cwd, '/src/rdb/index.js'));
 const mod = await import(indexSource);
-const targetDir = path.join(__dirname, '../../node_modules/.rdb');
+const targetDir = path.join(cwd, '../node_modules/.rdb');
 const dsTarget = path.join(targetDir, '/index.d.ts');
 const coredsSource = path.join(__dirname, '/../core.d.ts');
 const coredsTarget = path.join(targetDir, '/core.d.ts');
