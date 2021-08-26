@@ -30,6 +30,21 @@ function rdbClient(baseUrl, options = {}) {
 	let beforeRequest = options.beforeRequest;
 	let _reactive = options.reactive;
 
+	let handler = {
+		get(_target, property,) {
+			if (property in client)
+				return Reflect.get(...arguments);
+			else {
+				let rdbTable = require('.rdb')[property];
+				console.log(rdbTable)
+				return table(rdbTable);
+			}
+		}
+
+	};
+	let _client = new Proxy(client, handler);
+
+
 	function client(baseUrl) {
 		return rdbClient(baseUrl, client);
 	}
@@ -54,6 +69,8 @@ function rdbClient(baseUrl, options = {}) {
 	};
 	client.query = query;
 	client.transaction = transaction;
+
+	return _client;
 
 	function transaction() {
 		//todo
@@ -501,8 +518,6 @@ function rdbClient(baseUrl, options = {}) {
 		}
 
 	}
-
-	return client;
 }
 
 function difference(setA, setB, jsonMap) {
