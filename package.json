@@ -11,6 +11,9 @@
     "patch",
     "browser"
   ],
+  "bin": {
+    "generate": "bin/generate.mjs"
+  },
   "types": "./typings/index.d.ts",
   "scripts": {
     "build": "rollup -c rollup.config.js",
@@ -22,7 +25,7 @@
   "author": "Lars-Erik Roald <lars.roald@gmail.com>",
   "license": "ISC",
   "engines": {
-    "node": ">= 10.0.0"
+    "node": ">= 8.0.0"
   },
   "repository": {
     "type": "git",
@@ -30,6 +33,7 @@
   },
   "homepage": "https://github.com/alfateam/rdb-client/blob/master/README.md",
   "dependencies": {
+    "file-url": "^4.0.0",
     "isomorphic-fetch": "^3.0.0",
     "on-change": "^2.2.3",
     "rfc6902": "^3.0.4",
