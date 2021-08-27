@@ -29,13 +29,13 @@ function rdbClient(baseUrl, options = {}) {
 	let beforeResponse = options.beforeResponse;
 	let beforeRequest = options.beforeRequest;
 	let _reactive = options.reactive;
-	let previousClient = client;
-	function client(baseUrl) {
-		return rdbClient(baseUrl, previousClient);
+	function client(baseUrl, _options = {}) {
+		return rdbClient(baseUrl, _options);
 	}
 
 	if (options.models) {
 		for(let name in options.models) {
+			console.log(name);
 			client[name] = table(options.models[name]);
 		}
 		client.models = options.models;

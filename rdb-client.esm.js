@@ -2489,22 +2489,16 @@ function rdbClient(baseUrl, options = {}) {
 	let beforeResponse = options.beforeResponse;
 	let beforeRequest = options.beforeRequest;
 	let _reactive = options.reactive;
+	function client(baseUrl, _options = {}) {
+		return rdbClient(baseUrl, _options);
+	}
 
-	let handler = {
-		get(_target, property,) {
-			if (property in client)
-				return Reflect.get(...arguments);
-			else if (property in options.models) {
-				return table(options.models[property]);
-			}
+	if (options.models) {
+		for(let name in options.models) {
+			console.log(name);
+			client[name] = table(options.models[name]);
 		}
-
-	};
-	let _client = new Proxy(client, handler);
-
-
-	function client(baseUrl) {
-		return rdbClient(baseUrl, client);
+		client.models = options.models;
 	}
 
 	client.Concurrencies = {
@@ -2528,7 +2522,7 @@ function rdbClient(baseUrl, options = {}) {
 	client.query = query;
 	client.transaction = transaction;
 
-	return _client;
+	return client;
 
 	function transaction() {
 		//todo
