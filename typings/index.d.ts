@@ -1,10 +1,5 @@
-import {RdbClientBase, RawFilter, Filter, Concurrencies} from '../core';
-export * from './core';
-
-export interface RdbClient extends RdbClientBase {
-    customer: CustomerTable;
-    order: OrderTable;
-}
+import {Filter} from '../core';
+export * from '../core';
 
 export interface RdbStatic {
     (baseUrl: string): RdbClient;
