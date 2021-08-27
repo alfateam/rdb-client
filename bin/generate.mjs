@@ -28,7 +28,7 @@ const commonJs = `
     const models = require('../rdb/index.js');
     module.exports = rdbClient(undefined, {models});
 `;
-    const moduleJs = `
+const moduleJs = `
     import rdbClient from 'rdb-client';
     const models = require('../rdb/index.js')
     

@@ -1,0 +1,8 @@
+{
+    "name": "bin",
+    "version": "1.0.0",
+    "description": "",
+    "main": "generate.js",
+    "type": "module"
+  }
+  
