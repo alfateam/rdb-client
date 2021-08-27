@@ -38,8 +38,9 @@ function rdbClient(baseUrl, options = {}) {
 		for(let name in options.models) {
 			client[name] = table(options.models[name]);
 		}
+		client.models = options.models;
 	}
-
+	
 	client.Concurrencies = {
 		Optimistic: 'optimistic',
 		SkipOnConflict: 'skipOnConflict',
