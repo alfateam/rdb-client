@@ -36,7 +36,7 @@ function rdbClient(baseUrl, options = {}) {
 				return Reflect.get(...arguments);
 			else {
 				let rdbTable = require('.rdb')[property];
-				console.log(rdbTable)
+				console.log('proxy......................')
 				return table(rdbTable);
 			}
 		}

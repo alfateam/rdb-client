@@ -1,19 +1,7 @@
-var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+import require$$3 from 'uuid';
+import require$$4 from '.rdb';
 
-function getAugmentedNamespace(n) {
-	if (n.__esModule) return n;
-	var a = Object.defineProperty({}, '__esModule', {value: true});
-	Object.keys(n).forEach(function (k) {
-		var d = Object.getOwnPropertyDescriptor(n, k);
-		Object.defineProperty(a, k, d.get ? d : {
-			enumerable: true,
-			get: function () {
-				return n[k];
-			}
-		});
-	});
-	return a;
-}
+var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
 var constants = {
 	PATH_SEPARATOR: '.',
@@ -34,17 +22,17 @@ const isBuiltin$2 = {
 
 var isBuiltin_1 = isBuiltin$2;
 
-var isArray$3 = Array.isArray;
+var isArray$2 = Array.isArray;
 
 var isSymbol$3 = value => typeof value === 'symbol';
 
 const {PATH_SEPARATOR} = constants;
-const isArray$2 = isArray$3;
+const isArray$1 = isArray$2;
 const isSymbol$2 = isSymbol$3;
 
 var path$3 = {
 	after: (path, subPath) => {
-		if (isArray$2(path)) {
+		if (isArray$1(path)) {
 			return path.slice(subPath.length);
 		}
 
@@ -55,7 +43,7 @@ var path$3 = {
 		return path.slice(subPath.length + 1);
 	},
 	concat: (path, key) => {
-		if (isArray$2(path)) {
+		if (isArray$1(path)) {
 			path = path.slice();
 
 			if (key) {
@@ -80,7 +68,7 @@ var path$3 = {
 		return path;
 	},
 	initial: path => {
-		if (isArray$2(path)) {
+		if (isArray$1(path)) {
 			return path.slice(0, -1);
 		}
 
@@ -97,7 +85,7 @@ var path$3 = {
 		return path.slice(0, index);
 	},
 	last: path => {
-		if (isArray$2(path)) {
+		if (isArray$1(path)) {
 			return path[path.length - 1] || '';
 		}
 
@@ -114,7 +102,7 @@ var path$3 = {
 		return path.slice(index + 1);
 	},
 	walk: (path, callback) => {
-		if (isArray$2(path)) {
+		if (isArray$1(path)) {
 			path.forEach(key => callback(key));
 		} else if (path !== '') {
 			let position = 0;
@@ -135,15 +123,6 @@ var path$3 = {
 				}
 			}
 		}
-	},
-	get(object, path) {
-		this.walk(path, key => {
-			if (object) {
-				object = object[key];
-			}
-		});
-
-		return object;
 	}
 };
 
@@ -297,7 +276,13 @@ class Cache$1 {
 	}
 
 	isDetached(target, object) {
-		return !Object.is(target, path$2.get(object, this.getPath(target)));
+		path$2.walk(this.getPath(target), key => {
+			if (object) {
+				object = object[key];
+			}
+		});
+
+		return !Object.is(target, object);
 	}
 
 	defineProperty(target, property, descriptor) {
@@ -374,58 +359,20 @@ class Cache$1 {
 
 var cache = Cache$1;
 
-var isObject$2 = value => toString.call(value) === '[object Object]';
+var isObject$1 = value => toString.call(value) === '[object Object]';
 
-var isDiffCertain$1 = () => true;
+const path$1 = path$3;
+const isArray = isArray$2;
+const isBuiltin$1 = isBuiltin_1;
+const isObject = isObject$1;
 
-var isDiffArrays$1 = (clone, value) => {
+const certainChange = () => true;
+
+const shallowEqualArrays = (clone, value) => {
 	return clone.length !== value.length || clone.some((item, index) => value[index] !== item);
 };
 
-const IMMUTABLE_OBJECT_METHODS$2 = new Set([
-	'hasOwnProperty',
-	'isPrototypeOf',
-	'propertyIsEnumerable',
-	'toLocaleString',
-	'toString',
-	'valueOf'
-]);
-
-var object = {IMMUTABLE_OBJECT_METHODS: IMMUTABLE_OBJECT_METHODS$2};
-
-const isDiffCertain = isDiffCertain$1;
-const isDiffArrays = isDiffArrays$1;
-const {IMMUTABLE_OBJECT_METHODS: IMMUTABLE_OBJECT_METHODS$1} = object;
-
-const IMMUTABLE_ARRAY_METHODS = new Set([
-	'concat',
-	'includes',
-	'indexOf',
-	'join',
-	'keys',
-	'lastIndexOf'
-]);
-
-const MUTABLE_ARRAY_METHODS$1 = {
-	push: isDiffCertain,
-	pop: isDiffCertain,
-	shift: isDiffCertain,
-	unshift: isDiffCertain,
-	copyWithin: isDiffArrays,
-	reverse: isDiffArrays,
-	sort: isDiffArrays,
-	splice: isDiffArrays,
-	flat: isDiffArrays,
-	fill: isDiffArrays
-};
-
-const HANDLED_ARRAY_METHODS$1 = new Set([...IMMUTABLE_OBJECT_METHODS$1]
-	.concat([...IMMUTABLE_ARRAY_METHODS])
-	.concat(Object.keys(MUTABLE_ARRAY_METHODS$1)));
-
-var array = {MUTABLE_ARRAY_METHODS: MUTABLE_ARRAY_METHODS$1, HANDLED_ARRAY_METHODS: HANDLED_ARRAY_METHODS$1};
-
-var isDiffSets$1 = (clone, value) => {
+const shallowEqualSets = (clone, value) => {
 	if (clone.size !== value.size) {
 		return true;
 	}
@@ -439,38 +386,7 @@ var isDiffSets$1 = (clone, value) => {
 	return false;
 };
 
-const isDiffSets = isDiffSets$1;
-
-const COLLECTION_ITERATOR_METHODS$1 = [
-	'keys',
-	'values',
-	'entries'
-];
-
-const IMMUTABLE_SET_METHODS$1 = new Set([
-	'has',
-	'toString'
-]);
-
-const MUTABLE_SET_METHODS$1 = {
-	add: isDiffSets,
-	clear: isDiffSets,
-	delete: isDiffSets,
-	forEach: isDiffSets
-};
-
-const HANDLED_SET_METHODS$1 = new Set([...IMMUTABLE_SET_METHODS$1]
-	.concat(Object.keys(MUTABLE_SET_METHODS$1))
-	.concat(COLLECTION_ITERATOR_METHODS$1));
-
-var set = {
-	IMMUTABLE_SET_METHODS: IMMUTABLE_SET_METHODS$1,
-	MUTABLE_SET_METHODS: MUTABLE_SET_METHODS$1,
-	HANDLED_SET_METHODS: HANDLED_SET_METHODS$1,
-	COLLECTION_ITERATOR_METHODS: COLLECTION_ITERATOR_METHODS$1
-};
-
-var isDiffMaps$1 = (clone, value) => {
+const shallowEqualMaps = (clone, value) => {
 	if (clone.size !== value.size) {
 		return true;
 	}
@@ -487,64 +403,102 @@ var isDiffMaps$1 = (clone, value) => {
 	return false;
 };
 
-const {IMMUTABLE_SET_METHODS, COLLECTION_ITERATOR_METHODS} = set;
-const isDiffMaps = isDiffMaps$1;
+const IMMUTABLE_OBJECT_METHODS = new Set([
+	'hasOwnProperty',
+	'isPrototypeOf',
+	'propertyIsEnumerable',
+	'toLocaleString',
+	'toString',
+	'valueOf'
+]);
+
+const IMMUTABLE_ARRAY_METHODS = new Set([
+	'concat',
+	'includes',
+	'indexOf',
+	'join',
+	'keys',
+	'lastIndexOf'
+]);
+
+const IMMUTABLE_SET_METHODS = new Set([
+	'has',
+	'toString'
+]);
 
 const IMMUTABLE_MAP_METHODS = new Set([...IMMUTABLE_SET_METHODS].concat(['get']));
 
-const MUTABLE_MAP_METHODS$1 = {
-	set: isDiffMaps,
-	clear: isDiffMaps,
-	delete: isDiffMaps,
-	forEach: isDiffMaps
+const SHALLOW_MUTABLE_ARRAY_METHODS = {
+	push: certainChange,
+	pop: certainChange,
+	shift: certainChange,
+	unshift: certainChange,
+	copyWithin: shallowEqualArrays,
+	reverse: shallowEqualArrays,
+	sort: shallowEqualArrays,
+	splice: shallowEqualArrays,
+	flat: shallowEqualArrays,
+	fill: shallowEqualArrays
 };
 
-const HANDLED_MAP_METHODS$1 = new Set([...IMMUTABLE_MAP_METHODS]
-	.concat(Object.keys(MUTABLE_MAP_METHODS$1))
+const SHALLOW_MUTABLE_SET_METHODS = {
+	add: shallowEqualSets,
+	clear: shallowEqualSets,
+	delete: shallowEqualSets
+};
+
+const COLLECTION_ITERATOR_METHODS = [
+	'keys',
+	'values',
+	'entries'
+];
+
+const SHALLOW_MUTABLE_MAP_METHODS = {
+	set: shallowEqualMaps,
+	clear: shallowEqualMaps,
+	delete: shallowEqualMaps
+};
+
+const HANDLED_ARRAY_METHODS = new Set([...IMMUTABLE_OBJECT_METHODS]
+	.concat([...IMMUTABLE_ARRAY_METHODS])
+	.concat(Object.keys(SHALLOW_MUTABLE_ARRAY_METHODS)));
+
+const HANDLED_SET_METHODS = new Set([...IMMUTABLE_SET_METHODS]
+	.concat(Object.keys(SHALLOW_MUTABLE_SET_METHODS))
 	.concat(COLLECTION_ITERATOR_METHODS));
 
-var map = {MUTABLE_MAP_METHODS: MUTABLE_MAP_METHODS$1, HANDLED_MAP_METHODS: HANDLED_MAP_METHODS$1};
+const HANDLED_MAP_METHODS = new Set([...IMMUTABLE_MAP_METHODS]
+	.concat(Object.keys(SHALLOW_MUTABLE_MAP_METHODS))
+	.concat(COLLECTION_ITERATOR_METHODS));
 
-const path$1 = path$3;
-const isArray$1 = isArray$3;
-const isObject$1 = isObject$2;
-const {MUTABLE_ARRAY_METHODS} = array;
-const {MUTABLE_SET_METHODS} = set;
-const {MUTABLE_MAP_METHODS} = map;
-const {IMMUTABLE_OBJECT_METHODS} = object;
-
-var cloneObject = class CloneObject {
-	constructor(value, path, argumentsList, hasOnValidate) {
+class Clone {
+	constructor(value, path, argumentsList) {
 		this._path = path;
 		this._isChanged = false;
 		this._clonedCache = new Set();
-		this._hasOnValidate = hasOnValidate;
-		this._changes = hasOnValidate ? [] : null;
 
-		this.clone = path === undefined ? value : this._shallowClone(value);
-	}
-
-	static isHandledMethod(name) {
-		return IMMUTABLE_OBJECT_METHODS.has(name);
+		if (value instanceof WeakSet) {
+			this._weakValue = value.has(argumentsList[0]);
+		} else if (value instanceof WeakMap) {
+			this._weakValue = value.get(argumentsList[0]);
+		} else {
+			this.clone = path === undefined ? value : this._shallowClone(value);
+		}
 	}
 
 	_shallowClone(value) {
-		let clone = value;
+		let clone;
 
-		if (isObject$1(value)) {
+		if (isObject(value)) {
 			clone = {...value};
-		} else if (isArray$1(value)) {
+		} else if (isArray(value)) {
 			clone = [...value];
 		} else if (value instanceof Date) {
 			clone = new Date(value);
 		} else if (value instanceof Set) {
-			clone = new Set([...value].map(item => this._shallowClone(item)));
+			clone = new Set(value);
 		} else if (value instanceof Map) {
-			clone = new Map();
-
-			for (const [key, item] of value.entries()) {
-				clone.set(key, this._shallowClone(item));
-			}
+			clone = new Map(value);
 		}
 
 		this._clonedCache.add(clone);
@@ -552,14 +506,16 @@ var cloneObject = class CloneObject {
 		return clone;
 	}
 
-	preferredThisArg(isHandledMethod, name, thisArg, thisProxyTarget) {
-		if (isHandledMethod) {
-			if (isArray$1(thisProxyTarget)) {
-				this._onIsChanged = MUTABLE_ARRAY_METHODS[name];
+	preferredThisArg(target, thisArg, thisProxyTarget) {
+		const {name} = target;
+
+		if (SmartClone$1.isHandledMethod(thisProxyTarget, name)) {
+			if (isArray(thisProxyTarget)) {
+				this._onIsChanged = SHALLOW_MUTABLE_ARRAY_METHODS[name];
 			} else if (thisProxyTarget instanceof Set) {
-				this._onIsChanged = MUTABLE_SET_METHODS[name];
+				this._onIsChanged = SHALLOW_MUTABLE_SET_METHODS[name];
 			} else if (thisProxyTarget instanceof Map) {
-				this._onIsChanged = MUTABLE_MAP_METHODS[name];
+				this._onIsChanged = SHALLOW_MUTABLE_MAP_METHODS[name];
 			}
 
 			return thisProxyTarget;
@@ -569,182 +525,45 @@ var cloneObject = class CloneObject {
 	}
 
 	update(fullPath, property, value) {
-		const changePath = path$1.after(fullPath, this._path);
-
-		if (property !== 'length') {
+		if (value !== undefined && property !== 'length') {
 			let object = this.clone;
 
-			path$1.walk(changePath, key => {
-				if (object && object[key]) {
-					if (!this._clonedCache.has(object[key])) {
-						object[key] = this._shallowClone(object[key]);
-					}
-
-					object = object[key];
+			path$1.walk(path$1.after(fullPath, this._path), key => {
+				if (!this._clonedCache.has(object[key])) {
+					object[key] = this._shallowClone(object[key]);
 				}
+
+				object = object[key];
 			});
 
-			if (this._hasOnValidate) {
-				this._changes.push({
-					path: changePath,
-					property,
-					previous: value
-				});
-			}
-
-			if (object && object[property]) {
-				object[property] = value;
-			}
+			object[property] = value;
 		}
 
 		this._isChanged = true;
 	}
 
-	undo(object) {
-		let change;
-
-		for (let index = this._changes.length - 1; index !== -1; index--) {
-			change = this._changes[index];
-
-			path$1.get(object, change.path)[change.property] = change.previous;
+	isChanged(value, equals, argumentsList) {
+		if (value instanceof Date) {
+			return !equals(this.clone.valueOf(), value.valueOf());
 		}
-	}
 
-	isChanged(value) {
+		if (value instanceof WeakSet) {
+			return this._weakValue !== value.has(argumentsList[0]);
+		}
+
+		if (value instanceof WeakMap) {
+			return this._weakValue !== value.get(argumentsList[0]);
+		}
+
 		return this._onIsChanged === undefined ?
 			this._isChanged :
 			this._onIsChanged(this.clone, value);
 	}
-};
-
-const CloneObject$6 = cloneObject;
-const {HANDLED_ARRAY_METHODS} = array;
-
-var cloneArray = class CloneArray extends CloneObject$6 {
-	static isHandledMethod(name) {
-		return HANDLED_ARRAY_METHODS.has(name);
-	}
-};
-
-const CloneObject$5 = cloneObject;
-
-var cloneDate = class CloneDate extends CloneObject$5 {
-	undo(object) {
-		object.setTime(this.clone.getTime());
-	}
-
-	isChanged(value, equals) {
-		return !equals(this.clone.valueOf(), value.valueOf());
-	}
-};
-
-const CloneObject$4 = cloneObject;
-const {HANDLED_SET_METHODS} = set;
-
-var cloneSet = class CloneSet extends CloneObject$4 {
-	static isHandledMethod(name) {
-		return HANDLED_SET_METHODS.has(name);
-	}
-
-	undo(object) {
-		this.clone.forEach(value => {
-			object.add(value);
-		});
-		object.forEach(value => {
-			if (!this.clone.has(value)) {
-				object.delete(value);
-			}
-		});
-	}
-};
-
-const CloneObject$3 = cloneObject;
-const {HANDLED_MAP_METHODS} = map;
-
-var cloneMap = class CloneMap extends CloneObject$3 {
-	static isHandledMethod(name) {
-		return HANDLED_MAP_METHODS.has(name);
-	}
-
-	undo(object) {
-		for (const [key, value] of this.clone.entries()) {
-			object.set(key, value);
-		}
-
-		for (const key of object.keys()) {
-			if (!this.clone.has(key)) {
-				object.delete(key);
-			}
-		}
-	}
-};
-
-const CloneObject$2 = cloneObject;
-
-var cloneWeakset = class CloneWeakSet extends CloneObject$2 {
-	constructor(value, path, argumentsList, hasOnValidate) {
-		super(undefined, path, argumentsList, hasOnValidate);
-
-		this._arg1 = argumentsList[0];
-		this._weakValue = value.has(this._arg1);
-	}
-
-	isChanged(value) {
-		return this._weakValue !== value.has(this._arg1);
-	}
-
-	undo(object) {
-		if (this._weakValue && !object.has(this._arg1)) {
-			object.add(this._arg1);
-		} else {
-			object.delete(this._arg1);
-		}
-	}
-};
-
-const CloneObject$1 = cloneObject;
-
-var cloneWeakmap = class CloneWeakMap extends CloneObject$1 {
-	constructor(value, path, argumentsList, hasOnValidate) {
-		super(undefined, path, argumentsList, hasOnValidate);
-
-		this._weakKey = argumentsList[0];
-		this._weakHas = value.has(this._weakKey);
-		this._weakValue = value.get(this._weakKey);
-	}
-
-	isChanged(value) {
-		return this._weakValue !== value.get(this._weakKey);
-	}
-
-	undo(object) {
-		const weakHas = object.has(this._weakKey);
-
-		if (this._weakHas && !weakHas) {
-			object.set(this._weakKey, this._weakValue);
-		} else if (!this._weakHas && weakHas) {
-			object.delete(this._weakKey);
-		} else if (this._weakValue !== object.get(this._weakKey)) {
-			object.set(this._weakKey, this._weakValue);
-		}
-	}
-};
-
-const isArray = isArray$3;
-const isBuiltin$1 = isBuiltin_1;
-const isObject = isObject$2;
-const CloneObject = cloneObject;
-const CloneArray = cloneArray;
-const CloneDate = cloneDate;
-const CloneSet = cloneSet;
-const CloneMap = cloneMap;
-const CloneWeakSet = cloneWeakset;
-const CloneWeakMap = cloneWeakmap;
+}
 
 class SmartClone$1 {
-	constructor(hasOnValidate) {
-		this._stack = [];
-		this._hasOnValidate = hasOnValidate;
+	constructor() {
+		this.stack = [];
 	}
 
 	static isHandledType(value) {
@@ -755,74 +574,46 @@ class SmartClone$1 {
 
 	static isHandledMethod(target, name) {
 		if (isObject(target)) {
-			return CloneObject.isHandledMethod(name);
+			return IMMUTABLE_OBJECT_METHODS.has(name);
 		}
 
 		if (isArray(target)) {
-			return CloneArray.isHandledMethod(name);
+			return HANDLED_ARRAY_METHODS.has(name);
 		}
 
 		if (target instanceof Set) {
-			return CloneSet.isHandledMethod(name);
+			return HANDLED_SET_METHODS.has(name);
 		}
 
 		if (target instanceof Map) {
-			return CloneMap.isHandledMethod(name);
+			return HANDLED_MAP_METHODS.has(name);
 		}
 
 		return isBuiltin$1.withMutableMethods(target);
 	}
 
 	get isCloning() {
-		return this._stack.length !== 0;
+		return this.stack.length !== 0;
 	}
 
 	start(value, path, argumentsList) {
-		let CloneClass = CloneObject;
-
-		if (isArray(value)) {
-			CloneClass = CloneArray;
-		} else if (value instanceof Date) {
-			CloneClass = CloneDate;
-		} else if (value instanceof Set) {
-			CloneClass = CloneSet;
-		} else if (value instanceof Map) {
-			CloneClass = CloneMap;
-		} else if (value instanceof WeakSet) {
-			CloneClass = CloneWeakSet;
-		} else if (value instanceof WeakMap) {
-			CloneClass = CloneWeakMap;
-		}
-
-		this._stack.push(new CloneClass(value, path, argumentsList, this._hasOnValidate));
+		this.stack.push(new Clone(value, path, argumentsList));
 	}
 
 	update(fullPath, property, value) {
-		this._stack[this._stack.length - 1].update(fullPath, property, value);
+		this.stack[this.stack.length - 1].update(fullPath, property, value);
 	}
 
 	preferredThisArg(target, thisArg, thisProxyTarget) {
-		const {name} = target;
-		const isHandledMethod = SmartClone$1.isHandledMethod(thisProxyTarget, name);
-
-		return this._stack[this._stack.length - 1]
-			.preferredThisArg(isHandledMethod, name, thisArg, thisProxyTarget);
+		return this.stack[this.stack.length - 1].preferredThisArg(target, thisArg, thisProxyTarget);
 	}
 
-	isChanged(isMutable, value, equals) {
-		return this._stack[this._stack.length - 1].isChanged(isMutable, value, equals);
-	}
-
-	undo(object) {
-		if (this._previousClone !== undefined) {
-			this._previousClone.undo(object);
-		}
+	isChanged(isMutable, value, equals, argumentsList) {
+		return this.stack[this.stack.length - 1].isChanged(isMutable, value, equals, argumentsList);
 	}
 
 	stop() {
-		this._previousClone = this._stack.pop();
-
-		return this._previousClone.clone;
+		return this.stack.pop().clone;
 	}
 }
 
@@ -844,8 +635,7 @@ const defaultOptions = {
 	pathAsArray: false,
 	ignoreSymbols: false,
 	ignoreUnderscores: false,
-	ignoreDetached: false,
-	details: false
+	ignoreDetached: false
 };
 
 const onChange$1 = (object, onChange, options = {}) => {
@@ -854,40 +644,34 @@ const onChange$1 = (object, onChange, options = {}) => {
 		...options
 	};
 	const proxyTarget = Symbol('ProxyTarget');
-	const {equals, isShallow, ignoreDetached, details} = options;
+	const {equals, isShallow, ignoreDetached} = options;
 	const cache = new Cache(equals);
-	const hasOnValidate = typeof options.onValidate === 'function';
-	const smartClone = new SmartClone(hasOnValidate);
+	const smartClone = new SmartClone();
 
-	// eslint-disable-next-line max-params
-	const validate = (target, property, value, previous, applyData) => {
-		return !hasOnValidate ||
-			smartClone.isCloning ||
-			options.onValidate(path.concat(cache.getPath(target), property), value, previous, applyData) === true;
-	};
-
-	const handleChangeOnTarget = (target, property, value, previous) => {
+	const handleChangeOnTarget = (target, property, previous, value) => {
 		if (
 			!ignoreProperty(cache, options, property) &&
 			!(ignoreDetached && cache.isDetached(target, object))
 		) {
-			handleChange(cache.getPath(target), property, value, previous);
+			handleChange(cache.getPath(target), property, previous, value);
 		}
 	};
 
 	// eslint-disable-next-line max-params
-	const handleChange = (changePath, property, value, previous, applyData) => {
+	const handleChange = (changePath, property, previous, value, name) => {
 		if (smartClone.isCloning) {
 			smartClone.update(changePath, property, previous);
 		} else {
-			onChange(path.concat(changePath, property), value, previous, applyData);
+			onChange(path.concat(changePath, property), value, previous, name);
 		}
 	};
 
 	const getProxyTarget = value => {
-		return value ?
-			(value[proxyTarget] || value) :
-			value;
+		if (value) {
+			return value[proxyTarget] || value;
+		}
+
+		return value;
 	};
 
 	const prepareValue = (value, target, property, basePath) => {
@@ -938,35 +722,26 @@ const onChange$1 = (object, onChange, options = {}) => {
 
 			const reflectTarget = target[proxyTarget] || target;
 			const previous = reflectTarget[property];
+			const hasProperty = property in target;
 
-			if (equals(previous, value) && property in target) {
-				return true;
-			}
-
-			const isValid = validate(target, property, value, previous);
-
-			if (
-				isValid &&
-				cache.setProperty(reflectTarget, property, value, receiver, previous)
-			) {
-				handleChangeOnTarget(target, property, target[property], previous);
+			if (cache.setProperty(reflectTarget, property, value, receiver, previous)) {
+				if (!equals(previous, value) || !hasProperty) {
+					handleChangeOnTarget(target, property, previous, value);
+				}
 
 				return true;
 			}
 
-			return !isValid;
+			return false;
 		},
 
 		defineProperty(target, property, descriptor) {
 			if (!cache.isSameDescriptor(descriptor, target, property)) {
-				const previous = target[property];
-
-				if (
-					validate(target, property, descriptor.value, previous) &&
-					cache.defineProperty(target, property, descriptor, previous)
-				) {
-					handleChangeOnTarget(target, property, descriptor.value, previous);
+				if (!cache.defineProperty(target, property, descriptor)) {
+					return false;
 				}
+
+				handleChangeOnTarget(target, property, undefined, descriptor.value);
 			}
 
 			return true;
@@ -979,11 +754,8 @@ const onChange$1 = (object, onChange, options = {}) => {
 
 			const previous = Reflect.get(target, property);
 
-			if (
-				validate(target, property, undefined, previous) &&
-				cache.deleteProperty(target, property, previous)
-			) {
-				handleChangeOnTarget(target, property, undefined, previous);
+			if (cache.deleteProperty(target, property, previous)) {
+				handleChangeOnTarget(target, property, previous);
 
 				return true;
 			}
@@ -998,17 +770,13 @@ const onChange$1 = (object, onChange, options = {}) => {
 				return Reflect.apply(target, thisProxyTarget, argumentsList);
 			}
 
-			if (
-				(details === false ||
-					(details !== true && !details.includes(target.name))) &&
-				SmartClone.isHandledType(thisProxyTarget)
-			) {
-				let applyPath = path.initial(cache.getPath(target));
+			if (SmartClone.isHandledType(thisProxyTarget)) {
+				const applyPath = path.initial(cache.getPath(target));
 				const isHandledMethod = SmartClone.isHandledMethod(thisProxyTarget, target.name);
 
 				smartClone.start(thisProxyTarget, applyPath, argumentsList);
 
-				let result = Reflect.apply(
+				const result = Reflect.apply(
 					target,
 					smartClone.preferredThisArg(target, thisArg, thisProxyTarget),
 					isHandledMethod ?
@@ -1016,34 +784,14 @@ const onChange$1 = (object, onChange, options = {}) => {
 						argumentsList
 				);
 
-				const isChanged = smartClone.isChanged(thisProxyTarget, equals);
-				const previous = smartClone.stop();
-
-				if (SmartClone.isHandledType(result) && isHandledMethod) {
-					if (thisArg instanceof Map && target.name === 'get') {
-						applyPath = path.concat(applyPath, argumentsList[0]);
-					}
-
-					result = cache.getProxy(result, applyPath, handler);
-				}
+				const isChanged = smartClone.isChanged(thisProxyTarget, equals, argumentsList);
+				const clone = smartClone.stop();
 
 				if (isChanged) {
-					const applyData = {
-						name: target.name,
-						args: argumentsList,
-						result
-					};
-					const changePath = smartClone.isCloning ?
-						path.initial(applyPath) :
-						applyPath;
-					const property = smartClone.isCloning ?
-						path.last(applyPath) :
-						'';
-
-					if (validate(path.get(object, changePath), property, thisProxyTarget, previous, applyData)) {
-						handleChange(changePath, property, thisProxyTarget, previous, applyData);
+					if (smartClone.isCloning) {
+						handleChange(path.initial(applyPath), path.last(applyPath), clone, thisProxyTarget, target.name);
 					} else {
-						smartClone.undo(thisProxyTarget);
+						handleChange(applyPath, '', clone, thisProxyTarget, target.name);
 					}
 				}
 
@@ -1054,7 +802,9 @@ const onChange$1 = (object, onChange, options = {}) => {
 					return wrapIterator(result, target, thisArg, applyPath, prepareValue);
 				}
 
-				return result;
+				return (SmartClone.isHandledType(result) && isHandledMethod) ?
+					cache.getProxy(result, applyPath, handler, proxyTarget) :
+					result;
 			}
 
 			return Reflect.apply(target, thisArg, argumentsList);
@@ -1064,14 +814,10 @@ const onChange$1 = (object, onChange, options = {}) => {
 	const proxy = cache.getProxy(object, options.pathAsArray ? [] : '', handler);
 	onChange = onChange.bind(proxy);
 
-	if (hasOnValidate) {
-		options.onValidate = options.onValidate.bind(proxy);
-	}
-
 	return proxy;
 };
 
-onChange$1.target = proxy => (proxy && proxy[TARGET]) || proxy;
+onChange$1.target = proxy => proxy[TARGET] || proxy;
 onChange$1.unsubscribe = proxy => proxy[UNSUBSCRIBE] || proxy;
 
 var onChange_1 = onChange$1;
@@ -1102,7 +848,7 @@ Here's my take:
 I say "lower order" because '/' needs escaping due to the JSON Pointer serialization technique.
 Whereas, '~' is escaped because escaping '/' uses the '~' character.
 */
-function unescape$1(token) {
+function unescape(token) {
     return token.replace(/~1/g, '/').replace(/~0/g, '~');
 }
 /** Escape token part of a JSON Pointer string
@@ -1128,7 +874,7 @@ var Pointer = /** @class */ (function () {
     `path` *must* be a properly escaped string.
     */
     Pointer.fromJSON = function (path) {
-        var tokens = path.split('/').map(unescape$1);
+        var tokens = path.split('/').map(unescape);
         if (tokens[0] !== '')
             throw new Error("Invalid JSON Pointer: " + path);
         return new Pointer(tokens);
@@ -1955,614 +1701,14 @@ Date.prototype.toJSON = function() {
 	return dateToJSON.apply(this);
 };
 
-function stringify$3(value) {
+function stringify$2(value) {
 	isStringifying = true;
 	let result = JSON.stringify(value);
 	isStringifying = false;
 	return result;
 }
 
-var stringify_1 = stringify$3;
-
-// Unique ID creation requires a high quality random # generator. In the browser we therefore
-// require the crypto API and do not support built-in fallback to lower quality random number
-// generators (like Math.random()).
-var getRandomValues;
-var rnds8 = new Uint8Array(16);
-function rng() {
-  // lazy load so that environments that need to polyfill have a chance to do so
-  if (!getRandomValues) {
-    // getRandomValues needs to be invoked in a context where "this" is a Crypto implementation. Also,
-    // find the complete implementation of crypto (msCrypto) on IE11.
-    getRandomValues = typeof crypto !== 'undefined' && crypto.getRandomValues && crypto.getRandomValues.bind(crypto) || typeof msCrypto !== 'undefined' && typeof msCrypto.getRandomValues === 'function' && msCrypto.getRandomValues.bind(msCrypto);
-
-    if (!getRandomValues) {
-      throw new Error('crypto.getRandomValues() not supported. See https://github.com/uuidjs/uuid#getrandomvalues-not-supported');
-    }
-  }
-
-  return getRandomValues(rnds8);
-}
-
-var REGEX = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000)$/i;
-
-function validate(uuid) {
-  return typeof uuid === 'string' && REGEX.test(uuid);
-}
-
-/**
- * Convert array of 16 byte values to UUID string format of the form:
- * XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
- */
-
-var byteToHex = [];
-
-for (var i = 0; i < 256; ++i) {
-  byteToHex.push((i + 0x100).toString(16).substr(1));
-}
-
-function stringify$2(arr) {
-  var offset = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
-  // Note: Be careful editing this code!  It's been tuned for performance
-  // and works in ways you may not expect. See https://github.com/uuidjs/uuid/pull/434
-  var uuid = (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + '-' + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + '-' + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + '-' + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + '-' + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase(); // Consistency check for valid UUID.  If this throws, it's likely due to one
-  // of the following:
-  // - One or more input array values don't map to a hex octet (leading to
-  // "undefined" in the uuid)
-  // - Invalid input values for the RFC `version` or `variant` fields
-
-  if (!validate(uuid)) {
-    throw TypeError('Stringified UUID is invalid');
-  }
-
-  return uuid;
-}
-
-//
-// Inspired by https://github.com/LiosK/UUID.js
-// and http://docs.python.org/library/uuid.html
-
-var _nodeId;
-
-var _clockseq; // Previous uuid creation time
-
-
-var _lastMSecs = 0;
-var _lastNSecs = 0; // See https://github.com/uuidjs/uuid for API details
-
-function v1(options, buf, offset) {
-  var i = buf && offset || 0;
-  var b = buf || new Array(16);
-  options = options || {};
-  var node = options.node || _nodeId;
-  var clockseq = options.clockseq !== undefined ? options.clockseq : _clockseq; // node and clockseq need to be initialized to random values if they're not
-  // specified.  We do this lazily to minimize issues related to insufficient
-  // system entropy.  See #189
-
-  if (node == null || clockseq == null) {
-    var seedBytes = options.random || (options.rng || rng)();
-
-    if (node == null) {
-      // Per 4.5, create and 48-bit node id, (47 random bits + multicast bit = 1)
-      node = _nodeId = [seedBytes[0] | 0x01, seedBytes[1], seedBytes[2], seedBytes[3], seedBytes[4], seedBytes[5]];
-    }
-
-    if (clockseq == null) {
-      // Per 4.2.2, randomize (14 bit) clockseq
-      clockseq = _clockseq = (seedBytes[6] << 8 | seedBytes[7]) & 0x3fff;
-    }
-  } // UUID timestamps are 100 nano-second units since the Gregorian epoch,
-  // (1582-10-15 00:00).  JSNumbers aren't precise enough for this, so
-  // time is handled internally as 'msecs' (integer milliseconds) and 'nsecs'
-  // (100-nanoseconds offset from msecs) since unix epoch, 1970-01-01 00:00.
-
-
-  var msecs = options.msecs !== undefined ? options.msecs : Date.now(); // Per 4.2.1.2, use count of uuid's generated during the current clock
-  // cycle to simulate higher resolution clock
-
-  var nsecs = options.nsecs !== undefined ? options.nsecs : _lastNSecs + 1; // Time since last uuid creation (in msecs)
-
-  var dt = msecs - _lastMSecs + (nsecs - _lastNSecs) / 10000; // Per 4.2.1.2, Bump clockseq on clock regression
-
-  if (dt < 0 && options.clockseq === undefined) {
-    clockseq = clockseq + 1 & 0x3fff;
-  } // Reset nsecs if clock regresses (new clockseq) or we've moved onto a new
-  // time interval
-
-
-  if ((dt < 0 || msecs > _lastMSecs) && options.nsecs === undefined) {
-    nsecs = 0;
-  } // Per 4.2.1.2 Throw error if too many uuids are requested
-
-
-  if (nsecs >= 10000) {
-    throw new Error("uuid.v1(): Can't create more than 10M uuids/sec");
-  }
-
-  _lastMSecs = msecs;
-  _lastNSecs = nsecs;
-  _clockseq = clockseq; // Per 4.1.4 - Convert from unix epoch to Gregorian epoch
-
-  msecs += 12219292800000; // `time_low`
-
-  var tl = ((msecs & 0xfffffff) * 10000 + nsecs) % 0x100000000;
-  b[i++] = tl >>> 24 & 0xff;
-  b[i++] = tl >>> 16 & 0xff;
-  b[i++] = tl >>> 8 & 0xff;
-  b[i++] = tl & 0xff; // `time_mid`
-
-  var tmh = msecs / 0x100000000 * 10000 & 0xfffffff;
-  b[i++] = tmh >>> 8 & 0xff;
-  b[i++] = tmh & 0xff; // `time_high_and_version`
-
-  b[i++] = tmh >>> 24 & 0xf | 0x10; // include version
-
-  b[i++] = tmh >>> 16 & 0xff; // `clock_seq_hi_and_reserved` (Per 4.2.2 - include variant)
-
-  b[i++] = clockseq >>> 8 | 0x80; // `clock_seq_low`
-
-  b[i++] = clockseq & 0xff; // `node`
-
-  for (var n = 0; n < 6; ++n) {
-    b[i + n] = node[n];
-  }
-
-  return buf || stringify$2(b);
-}
-
-function parse(uuid) {
-  if (!validate(uuid)) {
-    throw TypeError('Invalid UUID');
-  }
-
-  var v;
-  var arr = new Uint8Array(16); // Parse ########-....-....-....-............
-
-  arr[0] = (v = parseInt(uuid.slice(0, 8), 16)) >>> 24;
-  arr[1] = v >>> 16 & 0xff;
-  arr[2] = v >>> 8 & 0xff;
-  arr[3] = v & 0xff; // Parse ........-####-....-....-............
-
-  arr[4] = (v = parseInt(uuid.slice(9, 13), 16)) >>> 8;
-  arr[5] = v & 0xff; // Parse ........-....-####-....-............
-
-  arr[6] = (v = parseInt(uuid.slice(14, 18), 16)) >>> 8;
-  arr[7] = v & 0xff; // Parse ........-....-....-####-............
-
-  arr[8] = (v = parseInt(uuid.slice(19, 23), 16)) >>> 8;
-  arr[9] = v & 0xff; // Parse ........-....-....-....-############
-  // (Use "/" to avoid 32-bit truncation when bit-shifting high-order bytes)
-
-  arr[10] = (v = parseInt(uuid.slice(24, 36), 16)) / 0x10000000000 & 0xff;
-  arr[11] = v / 0x100000000 & 0xff;
-  arr[12] = v >>> 24 & 0xff;
-  arr[13] = v >>> 16 & 0xff;
-  arr[14] = v >>> 8 & 0xff;
-  arr[15] = v & 0xff;
-  return arr;
-}
-
-function stringToBytes(str) {
-  str = unescape(encodeURIComponent(str)); // UTF8 escape
-
-  var bytes = [];
-
-  for (var i = 0; i < str.length; ++i) {
-    bytes.push(str.charCodeAt(i));
-  }
-
-  return bytes;
-}
-
-var DNS = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
-var URL = '6ba7b811-9dad-11d1-80b4-00c04fd430c8';
-function v35 (name, version, hashfunc) {
-  function generateUUID(value, namespace, buf, offset) {
-    if (typeof value === 'string') {
-      value = stringToBytes(value);
-    }
-
-    if (typeof namespace === 'string') {
-      namespace = parse(namespace);
-    }
-
-    if (namespace.length !== 16) {
-      throw TypeError('Namespace must be array-like (16 iterable integer values, 0-255)');
-    } // Compute hash of namespace and value, Per 4.3
-    // Future: Use spread syntax when supported on all platforms, e.g. `bytes =
-    // hashfunc([...namespace, ... value])`
-
-
-    var bytes = new Uint8Array(16 + value.length);
-    bytes.set(namespace);
-    bytes.set(value, namespace.length);
-    bytes = hashfunc(bytes);
-    bytes[6] = bytes[6] & 0x0f | version;
-    bytes[8] = bytes[8] & 0x3f | 0x80;
-
-    if (buf) {
-      offset = offset || 0;
-
-      for (var i = 0; i < 16; ++i) {
-        buf[offset + i] = bytes[i];
-      }
-
-      return buf;
-    }
-
-    return stringify$2(bytes);
-  } // Function#name is not settable on some platforms (#270)
-
-
-  try {
-    generateUUID.name = name; // eslint-disable-next-line no-empty
-  } catch (err) {} // For CommonJS default export support
-
-
-  generateUUID.DNS = DNS;
-  generateUUID.URL = URL;
-  return generateUUID;
-}
-
-/*
- * Browser-compatible JavaScript MD5
- *
- * Modification of JavaScript MD5
- * https://github.com/blueimp/JavaScript-MD5
- *
- * Copyright 2011, Sebastian Tschan
- * https://blueimp.net
- *
- * Licensed under the MIT license:
- * https://opensource.org/licenses/MIT
- *
- * Based on
- * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
- * Digest Algorithm, as defined in RFC 1321.
- * Version 2.2 Copyright (C) Paul Johnston 1999 - 2009
- * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
- * Distributed under the BSD License
- * See http://pajhome.org.uk/crypt/md5 for more info.
- */
-function md5(bytes) {
-  if (typeof bytes === 'string') {
-    var msg = unescape(encodeURIComponent(bytes)); // UTF8 escape
-
-    bytes = new Uint8Array(msg.length);
-
-    for (var i = 0; i < msg.length; ++i) {
-      bytes[i] = msg.charCodeAt(i);
-    }
-  }
-
-  return md5ToHexEncodedArray(wordsToMd5(bytesToWords(bytes), bytes.length * 8));
-}
-/*
- * Convert an array of little-endian words to an array of bytes
- */
-
-
-function md5ToHexEncodedArray(input) {
-  var output = [];
-  var length32 = input.length * 32;
-  var hexTab = '0123456789abcdef';
-
-  for (var i = 0; i < length32; i += 8) {
-    var x = input[i >> 5] >>> i % 32 & 0xff;
-    var hex = parseInt(hexTab.charAt(x >>> 4 & 0x0f) + hexTab.charAt(x & 0x0f), 16);
-    output.push(hex);
-  }
-
-  return output;
-}
-/**
- * Calculate output length with padding and bit length
- */
-
-
-function getOutputLength(inputLength8) {
-  return (inputLength8 + 64 >>> 9 << 4) + 14 + 1;
-}
-/*
- * Calculate the MD5 of an array of little-endian words, and a bit length.
- */
-
-
-function wordsToMd5(x, len) {
-  /* append padding */
-  x[len >> 5] |= 0x80 << len % 32;
-  x[getOutputLength(len) - 1] = len;
-  var a = 1732584193;
-  var b = -271733879;
-  var c = -1732584194;
-  var d = 271733878;
-
-  for (var i = 0; i < x.length; i += 16) {
-    var olda = a;
-    var oldb = b;
-    var oldc = c;
-    var oldd = d;
-    a = md5ff(a, b, c, d, x[i], 7, -680876936);
-    d = md5ff(d, a, b, c, x[i + 1], 12, -389564586);
-    c = md5ff(c, d, a, b, x[i + 2], 17, 606105819);
-    b = md5ff(b, c, d, a, x[i + 3], 22, -1044525330);
-    a = md5ff(a, b, c, d, x[i + 4], 7, -176418897);
-    d = md5ff(d, a, b, c, x[i + 5], 12, 1200080426);
-    c = md5ff(c, d, a, b, x[i + 6], 17, -1473231341);
-    b = md5ff(b, c, d, a, x[i + 7], 22, -45705983);
-    a = md5ff(a, b, c, d, x[i + 8], 7, 1770035416);
-    d = md5ff(d, a, b, c, x[i + 9], 12, -1958414417);
-    c = md5ff(c, d, a, b, x[i + 10], 17, -42063);
-    b = md5ff(b, c, d, a, x[i + 11], 22, -1990404162);
-    a = md5ff(a, b, c, d, x[i + 12], 7, 1804603682);
-    d = md5ff(d, a, b, c, x[i + 13], 12, -40341101);
-    c = md5ff(c, d, a, b, x[i + 14], 17, -1502002290);
-    b = md5ff(b, c, d, a, x[i + 15], 22, 1236535329);
-    a = md5gg(a, b, c, d, x[i + 1], 5, -165796510);
-    d = md5gg(d, a, b, c, x[i + 6], 9, -1069501632);
-    c = md5gg(c, d, a, b, x[i + 11], 14, 643717713);
-    b = md5gg(b, c, d, a, x[i], 20, -373897302);
-    a = md5gg(a, b, c, d, x[i + 5], 5, -701558691);
-    d = md5gg(d, a, b, c, x[i + 10], 9, 38016083);
-    c = md5gg(c, d, a, b, x[i + 15], 14, -660478335);
-    b = md5gg(b, c, d, a, x[i + 4], 20, -405537848);
-    a = md5gg(a, b, c, d, x[i + 9], 5, 568446438);
-    d = md5gg(d, a, b, c, x[i + 14], 9, -1019803690);
-    c = md5gg(c, d, a, b, x[i + 3], 14, -187363961);
-    b = md5gg(b, c, d, a, x[i + 8], 20, 1163531501);
-    a = md5gg(a, b, c, d, x[i + 13], 5, -1444681467);
-    d = md5gg(d, a, b, c, x[i + 2], 9, -51403784);
-    c = md5gg(c, d, a, b, x[i + 7], 14, 1735328473);
-    b = md5gg(b, c, d, a, x[i + 12], 20, -1926607734);
-    a = md5hh(a, b, c, d, x[i + 5], 4, -378558);
-    d = md5hh(d, a, b, c, x[i + 8], 11, -2022574463);
-    c = md5hh(c, d, a, b, x[i + 11], 16, 1839030562);
-    b = md5hh(b, c, d, a, x[i + 14], 23, -35309556);
-    a = md5hh(a, b, c, d, x[i + 1], 4, -1530992060);
-    d = md5hh(d, a, b, c, x[i + 4], 11, 1272893353);
-    c = md5hh(c, d, a, b, x[i + 7], 16, -155497632);
-    b = md5hh(b, c, d, a, x[i + 10], 23, -1094730640);
-    a = md5hh(a, b, c, d, x[i + 13], 4, 681279174);
-    d = md5hh(d, a, b, c, x[i], 11, -358537222);
-    c = md5hh(c, d, a, b, x[i + 3], 16, -722521979);
-    b = md5hh(b, c, d, a, x[i + 6], 23, 76029189);
-    a = md5hh(a, b, c, d, x[i + 9], 4, -640364487);
-    d = md5hh(d, a, b, c, x[i + 12], 11, -421815835);
-    c = md5hh(c, d, a, b, x[i + 15], 16, 530742520);
-    b = md5hh(b, c, d, a, x[i + 2], 23, -995338651);
-    a = md5ii(a, b, c, d, x[i], 6, -198630844);
-    d = md5ii(d, a, b, c, x[i + 7], 10, 1126891415);
-    c = md5ii(c, d, a, b, x[i + 14], 15, -1416354905);
-    b = md5ii(b, c, d, a, x[i + 5], 21, -57434055);
-    a = md5ii(a, b, c, d, x[i + 12], 6, 1700485571);
-    d = md5ii(d, a, b, c, x[i + 3], 10, -1894986606);
-    c = md5ii(c, d, a, b, x[i + 10], 15, -1051523);
-    b = md5ii(b, c, d, a, x[i + 1], 21, -2054922799);
-    a = md5ii(a, b, c, d, x[i + 8], 6, 1873313359);
-    d = md5ii(d, a, b, c, x[i + 15], 10, -30611744);
-    c = md5ii(c, d, a, b, x[i + 6], 15, -1560198380);
-    b = md5ii(b, c, d, a, x[i + 13], 21, 1309151649);
-    a = md5ii(a, b, c, d, x[i + 4], 6, -145523070);
-    d = md5ii(d, a, b, c, x[i + 11], 10, -1120210379);
-    c = md5ii(c, d, a, b, x[i + 2], 15, 718787259);
-    b = md5ii(b, c, d, a, x[i + 9], 21, -343485551);
-    a = safeAdd(a, olda);
-    b = safeAdd(b, oldb);
-    c = safeAdd(c, oldc);
-    d = safeAdd(d, oldd);
-  }
-
-  return [a, b, c, d];
-}
-/*
- * Convert an array bytes to an array of little-endian words
- * Characters >255 have their high-byte silently ignored.
- */
-
-
-function bytesToWords(input) {
-  if (input.length === 0) {
-    return [];
-  }
-
-  var length8 = input.length * 8;
-  var output = new Uint32Array(getOutputLength(length8));
-
-  for (var i = 0; i < length8; i += 8) {
-    output[i >> 5] |= (input[i / 8] & 0xff) << i % 32;
-  }
-
-  return output;
-}
-/*
- * Add integers, wrapping at 2^32. This uses 16-bit operations internally
- * to work around bugs in some JS interpreters.
- */
-
-
-function safeAdd(x, y) {
-  var lsw = (x & 0xffff) + (y & 0xffff);
-  var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
-  return msw << 16 | lsw & 0xffff;
-}
-/*
- * Bitwise rotate a 32-bit number to the left.
- */
-
-
-function bitRotateLeft(num, cnt) {
-  return num << cnt | num >>> 32 - cnt;
-}
-/*
- * These functions implement the four basic operations the algorithm uses.
- */
-
-
-function md5cmn(q, a, b, x, s, t) {
-  return safeAdd(bitRotateLeft(safeAdd(safeAdd(a, q), safeAdd(x, t)), s), b);
-}
-
-function md5ff(a, b, c, d, x, s, t) {
-  return md5cmn(b & c | ~b & d, a, b, x, s, t);
-}
-
-function md5gg(a, b, c, d, x, s, t) {
-  return md5cmn(b & d | c & ~d, a, b, x, s, t);
-}
-
-function md5hh(a, b, c, d, x, s, t) {
-  return md5cmn(b ^ c ^ d, a, b, x, s, t);
-}
-
-function md5ii(a, b, c, d, x, s, t) {
-  return md5cmn(c ^ (b | ~d), a, b, x, s, t);
-}
-
-var v3 = v35('v3', 0x30, md5);
-var v3$1 = v3;
-
-function v4(options, buf, offset) {
-  options = options || {};
-  var rnds = options.random || (options.rng || rng)(); // Per 4.4, set bits for version and `clock_seq_hi_and_reserved`
-
-  rnds[6] = rnds[6] & 0x0f | 0x40;
-  rnds[8] = rnds[8] & 0x3f | 0x80; // Copy bytes to buffer, if provided
-
-  if (buf) {
-    offset = offset || 0;
-
-    for (var i = 0; i < 16; ++i) {
-      buf[offset + i] = rnds[i];
-    }
-
-    return buf;
-  }
-
-  return stringify$2(rnds);
-}
-
-// Adapted from Chris Veness' SHA1 code at
-// http://www.movable-type.co.uk/scripts/sha1.html
-function f(s, x, y, z) {
-  switch (s) {
-    case 0:
-      return x & y ^ ~x & z;
-
-    case 1:
-      return x ^ y ^ z;
-
-    case 2:
-      return x & y ^ x & z ^ y & z;
-
-    case 3:
-      return x ^ y ^ z;
-  }
-}
-
-function ROTL(x, n) {
-  return x << n | x >>> 32 - n;
-}
-
-function sha1(bytes) {
-  var K = [0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6];
-  var H = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0];
-
-  if (typeof bytes === 'string') {
-    var msg = unescape(encodeURIComponent(bytes)); // UTF8 escape
-
-    bytes = [];
-
-    for (var i = 0; i < msg.length; ++i) {
-      bytes.push(msg.charCodeAt(i));
-    }
-  } else if (!Array.isArray(bytes)) {
-    // Convert Array-like to Array
-    bytes = Array.prototype.slice.call(bytes);
-  }
-
-  bytes.push(0x80);
-  var l = bytes.length / 4 + 2;
-  var N = Math.ceil(l / 16);
-  var M = new Array(N);
-
-  for (var _i = 0; _i < N; ++_i) {
-    var arr = new Uint32Array(16);
-
-    for (var j = 0; j < 16; ++j) {
-      arr[j] = bytes[_i * 64 + j * 4] << 24 | bytes[_i * 64 + j * 4 + 1] << 16 | bytes[_i * 64 + j * 4 + 2] << 8 | bytes[_i * 64 + j * 4 + 3];
-    }
-
-    M[_i] = arr;
-  }
-
-  M[N - 1][14] = (bytes.length - 1) * 8 / Math.pow(2, 32);
-  M[N - 1][14] = Math.floor(M[N - 1][14]);
-  M[N - 1][15] = (bytes.length - 1) * 8 & 0xffffffff;
-
-  for (var _i2 = 0; _i2 < N; ++_i2) {
-    var W = new Uint32Array(80);
-
-    for (var t = 0; t < 16; ++t) {
-      W[t] = M[_i2][t];
-    }
-
-    for (var _t = 16; _t < 80; ++_t) {
-      W[_t] = ROTL(W[_t - 3] ^ W[_t - 8] ^ W[_t - 14] ^ W[_t - 16], 1);
-    }
-
-    var a = H[0];
-    var b = H[1];
-    var c = H[2];
-    var d = H[3];
-    var e = H[4];
-
-    for (var _t2 = 0; _t2 < 80; ++_t2) {
-      var s = Math.floor(_t2 / 20);
-      var T = ROTL(a, 5) + f(s, b, c, d) + e + K[s] + W[_t2] >>> 0;
-      e = d;
-      d = c;
-      c = ROTL(b, 30) >>> 0;
-      b = a;
-      a = T;
-    }
-
-    H[0] = H[0] + a >>> 0;
-    H[1] = H[1] + b >>> 0;
-    H[2] = H[2] + c >>> 0;
-    H[3] = H[3] + d >>> 0;
-    H[4] = H[4] + e >>> 0;
-  }
-
-  return [H[0] >> 24 & 0xff, H[0] >> 16 & 0xff, H[0] >> 8 & 0xff, H[0] & 0xff, H[1] >> 24 & 0xff, H[1] >> 16 & 0xff, H[1] >> 8 & 0xff, H[1] & 0xff, H[2] >> 24 & 0xff, H[2] >> 16 & 0xff, H[2] >> 8 & 0xff, H[2] & 0xff, H[3] >> 24 & 0xff, H[3] >> 16 & 0xff, H[3] >> 8 & 0xff, H[3] & 0xff, H[4] >> 24 & 0xff, H[4] >> 16 & 0xff, H[4] >> 8 & 0xff, H[4] & 0xff];
-}
-
-var v5 = v35('v5', 0x50, sha1);
-var v5$1 = v5;
-
-var nil = '00000000-0000-0000-0000-000000000000';
-
-function version(uuid) {
-  if (!validate(uuid)) {
-    throw TypeError('Invalid UUID');
-  }
-
-  return parseInt(uuid.substr(14, 1), 16);
-}
-
-var esmBrowser = /*#__PURE__*/Object.freeze({
-	__proto__: null,
-	v1: v1,
-	v3: v3$1,
-	v4: v4,
-	v5: v5$1,
-	NIL: nil,
-	version: version,
-	validate: validate,
-	stringify: stringify$2,
-	parse: parse
-});
-
-var require$$3 = /*@__PURE__*/getAugmentedNamespace(esmBrowser);
+var stringify_1 = stringify$2;
 
 let rfc = rfc6902;
 let dateToIsoString = dateToIsoString_1;
@@ -3345,6 +2491,21 @@ function rdbClient(baseUrl, options = {}) {
 	let beforeRequest = options.beforeRequest;
 	let _reactive = options.reactive;
 
+	let handler = {
+		get(_target, property,) {
+			if (property in client)
+				return Reflect.get(...arguments);
+			else {
+				let rdbTable = require$$4[property];
+				console.log('proxy......................');
+				return table(rdbTable);
+			}
+		}
+
+	};
+	let _client = new Proxy(client, handler);
+
+
 	function client(baseUrl) {
 		return rdbClient(baseUrl, client);
 	}
@@ -3369,6 +2530,8 @@ function rdbClient(baseUrl, options = {}) {
 	};
 	client.query = query;
 	client.transaction = transaction;
+
+	return _client;
 
 	function transaction() {
 		//todo
@@ -3813,8 +2976,6 @@ function rdbClient(baseUrl, options = {}) {
 		}
 
 	}
-
-	return client;
 }
 
 function difference(setA, setB, jsonMap) {
