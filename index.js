@@ -30,21 +30,14 @@ function rdbClient(baseUrl, options = {}) {
 	let beforeRequest = options.beforeRequest;
 	let _reactive = options.reactive;
 
-	let handler = {
-		get(_target, property,) {
-			if (property in client)
-				return Reflect.get(...arguments);
-			// else if (property in options.models) {
-			// 	return table(options.models[property]);
-			// }
-		}
-
-	};
-	let _client = new Proxy(client, handler);
-
-
 	function client(baseUrl) {
 		return rdbClient(baseUrl, client);
+	}
+
+	if (options.models) {
+		for(let name in options.models) {
+			client[name] = table(options.models[name]);
+		}
 	}
 
 	client.Concurrencies = {
