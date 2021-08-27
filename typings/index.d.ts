@@ -1,4 +1,4 @@
-import {Filter, RdbClient} from '../core';
+import {Filter, RdbClientBase} from '../core';
 export * from '../core';
 
 export interface RdbStatic {
