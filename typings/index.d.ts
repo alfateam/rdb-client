@@ -1,4 +1,4 @@
-import {Filter} from '../core';
+import {Filter, RdbClient} from '../core';
 export * from '../core';
 
 export interface RdbStatic {
@@ -6,6 +6,9 @@ export interface RdbStatic {
     (db: object): RdbClient;
     filter: Filter;
 }      
+
+export interface RdbClient extends RdbClientBase {    
+}
 
 declare const rdbClient: RdbStatic;
 export default rdbClient;
