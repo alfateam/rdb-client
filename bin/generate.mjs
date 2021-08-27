@@ -48,7 +48,7 @@ const packageJSON = `
     "name": ".rdb",
     "version": "1.0.0",
     "main": "index.js",
-    "module": "index.esm.js",
+    "module": "index.esm.js"
 }`;
 
 
