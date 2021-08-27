@@ -34,10 +34,8 @@ function rdbClient(baseUrl, options = {}) {
 		get(_target, property,) {
 			if (property in client)
 				return Reflect.get(...arguments);
-			else {
-				let rdbTable = require('.rdb')[property];
-				console.log('proxy......................')
-				return table(rdbTable);
+			else if (property in options.models) {
+				return table(options.models[property]);
 			}
 		}
 

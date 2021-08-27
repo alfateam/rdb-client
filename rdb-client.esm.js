@@ -1,5 +1,4 @@
 import require$$3 from 'uuid';
-import require$$4 from '.rdb';
 
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
@@ -2495,10 +2494,8 @@ function rdbClient(baseUrl, options = {}) {
 		get(_target, property,) {
 			if (property in client)
 				return Reflect.get(...arguments);
-			else {
-				let rdbTable = require$$4[property];
-				console.log('proxy......................');
-				return table(rdbTable);
+			else if (property in options.models) {
+				return table(options.models[property]);
 			}
 		}
 

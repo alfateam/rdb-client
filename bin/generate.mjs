@@ -14,16 +14,26 @@ const appendFile = util.promisify(fs.appendFile);
 const copyFile = util.promisify(fs.copyFile);
 
 const indexSource = fileUrl(path.join(cwd, '/src/rdb/index.js'));
-const commonJs = `module.exports = require('${indexSource}')`;
-const moduleJs = `export * from '${indexSource}'`;
 const mod = await import(indexSource);
-const targetDir = path.join(cwd, '/node_modules/.rdb');
+const targetDir = path.join(cwd, '/src/.rdb');
 const dsTarget = path.join(targetDir, '/index.d.ts');
 const coredsSource = path.join(__dirname, '/../core.d.ts');
 const coredsTarget = path.join(targetDir, '/core.d.ts');
 const commonJsTarget = path.join(targetDir, '/index.js');
 const moduleJsTarget = path.join(targetDir, '/index.esm.js');
 const packageJSONTarget = path.join(targetDir, '/package.json');
+
+const commonJs = `
+    let rdbClient = require('rdb-client');
+    const models = require('../rdb/index.js');
+    module.exports = rdbClient(undefined, {models});
+`;
+    const moduleJs = `
+    import rdbClient from 'rdb-client';
+    const models = require('../rdb/index.js')
+    
+    export default rdbClient(undefined, {models});    
+`;
 
 const appendix = `
 import {RdbClientBase, RawFilter, Filter, Concurrencies} from './core';

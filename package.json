@@ -14,7 +14,6 @@
   "bin": {
     "generate": "bin/generate.mjs"
   },
-  "types": "./typings/index.d.ts",
   "scripts": {
     "build": "rollup -c rollup.config.js",
     "test": "eslint ./ && jest",
