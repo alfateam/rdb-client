@@ -6,8 +6,6 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import fileUrl from 'file-url';
 
-console.log(process.cwd());
-
 const cwd = process.cwd();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,7 +22,7 @@ const dsTarget = path.join(targetDir, '/index.d.ts');
 const coredsSource = path.join(__dirname, '/../core.d.ts');
 const coredsTarget = path.join(targetDir, '/core.d.ts');
 const commonJsTarget = path.join(targetDir, '/index.js');
-const moduleJsTarget = path.join(targetDir, '/index.ems.js');
+const moduleJsTarget = path.join(targetDir, '/index.esm.js');
 const packageJSONTarget = path.join(targetDir, '/package.json');
 
 const appendix = `
@@ -47,7 +45,7 @@ export default rdbClient;`
 
 const packageJSON = `
 {
-    "name": ".a",
+    "name": ".rdb",
     "version": "1.0.0",
     "main": "index.js",
     "module": "index.esm.js",
@@ -56,11 +54,11 @@ const packageJSON = `
 
 if (!fs.existsSync(targetDir))
     fs.mkdirSync(targetDir);
-await writeFile(packageJSONTarget, packageJSON);
-await writeFile(commonJs, commonJsTarget);
-await writeFile(moduleJs, moduleJsTarget);
+
+    await writeFile(packageJSONTarget, packageJSON);
+await writeFile(commonJsTarget, commonJs);
+await writeFile(moduleJsTarget, moduleJs);
 await writeFile(dsTarget, appendix);
-await writeFile()
 
 await copyFile(coredsSource, coredsTarget);
 
