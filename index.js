@@ -29,9 +29,9 @@ function rdbClient(baseUrl, options = {}) {
 	let beforeResponse = options.beforeResponse;
 	let beforeRequest = options.beforeRequest;
 	let _reactive = options.reactive;
-
+	let previousClient = client;
 	function client(baseUrl) {
-		return rdbClient(baseUrl, client);
+		return rdbClient(baseUrl, previousClient);
 	}
 
 	if (options.models) {
@@ -40,7 +40,7 @@ function rdbClient(baseUrl, options = {}) {
 		}
 		client.models = options.models;
 	}
-	
+
 	client.Concurrencies = {
 		Optimistic: 'optimistic',
 		SkipOnConflict: 'skipOnConflict',
