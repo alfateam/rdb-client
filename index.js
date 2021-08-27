@@ -34,9 +34,9 @@ function rdbClient(baseUrl, options = {}) {
 		get(_target, property,) {
 			if (property in client)
 				return Reflect.get(...arguments);
-			else if (property in options.models) {
-				return table(options.models[property]);
-			}
+			// else if (property in options.models) {
+			// 	return table(options.models[property]);
+			// }
 		}
 
 	};
