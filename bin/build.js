@@ -1,3 +1,4 @@
+#! /usr/bin/env node
 let compile = require('./compile');
 let glob = require('glob');
 let path = require('path');
