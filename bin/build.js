@@ -32,7 +32,7 @@ async function run() {
 
         }
     }
-    fs.copyFileSync(path.join(__dirname, '/../core.d.ts'), path.join(clientDir, '/core.d.ts'))
+    // fs.copyFileSync(path.join(__dirname, '/../core.d.ts'), path.join(clientDir, '/core.d.ts'))
     let indexDts = path.join(clientDir, '/index.d.ts');
     await writeFile(indexDts, getPrefixTs());
     fs.appendFileSync(indexDts, defs);
@@ -63,8 +63,8 @@ async function findIndexTs() {
 
 function getPrefixTs() {
     return `
-import {RdbClientBase, RawFilter, Filter, Concurrencies} from './core';
-export * from './core';
+import {RdbClientBase, RawFilter, Filter, Concurrencies} from 'rdb-client';
+export * from 'rdb-client';
 
 export interface RdbStatic {
     (baseUrl: string): RdbClient;

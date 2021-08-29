@@ -33,12 +33,12 @@ function rdbClient(baseUrl, options = {}) {
 		return rdbClient(baseUrl, _options);
 	}
 
-	if (options.models) {
-		for(let name in options.models) {
+	if (options.tables) {
+		for(let name in options.tables) {
 			console.log(name);
-			client[name] = table(options.models[name]);
+			client[name] = table(options.tables[name]);
 		}
-		client.models = options.models;
+		client.tables = options.tables;
 	}
 
 	client.Concurrencies = {

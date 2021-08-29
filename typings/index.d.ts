@@ -2,8 +2,8 @@ import {Filter, RdbClientBase} from '../core';
 export * from '../core';
 
 export interface RdbStatic {
-    (baseUrl: string): RdbClient;
-    (db: object): RdbClient;
+    (baseUrl: string, options?: any): RdbClient;
+    (db: object, options?: any): RdbClient;
     filter: Filter;
 }      
 

@@ -6,7 +6,9 @@ module.exports = {
         "jest/globals": true
     },
     "extends": [
-        "eslint:recommended"
+        "eslint:recommended",
+        "plugin:@typescript-eslint/eslint-recommended",
+        "plugin:@typescript-eslint/recommended"
     ],
     "parserOptions": {
         "sourceType": "module",
@@ -35,5 +37,5 @@ module.exports = {
         "jest/prefer-to-have-length": "warn",
         "jest/valid-expect": "error"
     },
-    "plugins": ["jest"]
+    "plugins": ["jest", "@typescript-eslint"]
 }
