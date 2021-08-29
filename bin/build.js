@@ -2,6 +2,11 @@ let compile = require('./compile');
 let glob = require('glob');
 let path = require('path');
 let findNodeModules = require('find-node-modules');
+let fs = require('fs');
+let util = require('util');
+let writeFile = util.promisify(fs.writeFile);
+const copyFile = util.promisify(fs.copyFile);
+
 
 run();
 
@@ -9,14 +14,31 @@ async function run() {
     let indexTs = await findIndexTs();
     if (!indexTs)
         return;
-    let clientDir = path.join(path.dirname(fileUrl), '/client');
+    let clientDir = path.join(path.dirname(indexTs), '/client');
     let nodeModules = findNodeModules({cwd: indexTs, relative: false})[0];
     let outDir = path.join( nodeModules, '/.rdb-client');
     let indexJsPath = compile(indexTs,  {outDir});
-    if (indexJsPath) {
-        let indexJs = require(indexJsPath);
-        console.log(indexJs);
+    if (!indexJsPath)
+        return;
+    let indexJs = require(indexJsPath);
+    if ('default' in indexJs) 
+        indexJs = indexJs.default;
+    let defs = '';
+    for (let name in indexJs) {
+        let table = indexJs[name];
+        console.log(name)
+        if (table.ts) {
+            defs+= table.ts(name);
+
+        }
     }
+    fs.copyFileSync(path.join(__dirname, '/../core.d.ts'), path.join(clientDir, '/core.d.ts'))
+    let indexDts = path.join(clientDir, '/index.d.ts');
+    await writeFile(indexDts, getPrefixTs());
+    fs.appendFileSync(indexDts, defs);
+    fs.appendFileSync(indexDts, getRdbClientTs(indexJs));
+    
+    // console.log(indexJs);
     
 }
 
@@ -38,3 +60,39 @@ async function findIndexTs() {
           })
       })      
 }
+
+function getPrefixTs() {
+    return `
+import {RdbClientBase, RawFilter, Filter, Concurrencies} from './core';
+export * from './core';
+
+export interface RdbStatic {
+    (baseUrl: string): RdbClient;
+    (db: object): RdbClient;
+    filter: Filter;
+}      
+
+declare const rdbClient: RdbStatic;
+export default rdbClient;`;
+}
+
+function getRdbClientTs(tables) {
+    return `
+export interface RdbClient extends RdbClientBase {
+    ${getTables()}    
+}
+    `;
+
+    function getTables() {
+        let result = ``;
+        for(let name in tables) {
+            let Name = name.substring(0,1).toUpperCase() + name.substring(1);
+            result += 
+`
+    ${name}: ${Name}Table;`;
+        }
+        return result;        
+    }
+
+}
+
