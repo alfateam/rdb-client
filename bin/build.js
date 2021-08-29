@@ -37,7 +37,7 @@ async function run() {
     await writeFile(indexDts, getPrefixTs());
     fs.appendFileSync(indexDts, defs);
     fs.appendFileSync(indexDts, getRdbClientTs(indexJs));
-    
+    await writeFile(path.join(clientDir, '/index.ts'), getClientIndexTs())
     // console.log(indexJs);
     
 }
@@ -94,5 +94,19 @@ export interface RdbClient extends RdbClientBase {
         return result;        
     }
 
+}
+
+function getClientIndexTs() {
+    return `
+    import {RdbClient} from './index.d';
+    import rdbClient from 'rdb-client';
+    import tables from '../index';
+    
+    function create(db: any) : RdbClient {
+        const client = rdbClient(db, {tables});
+        return client as RdbClient;
+    }
+    
+    export default create;`;
 }
 
