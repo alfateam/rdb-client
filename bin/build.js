@@ -27,7 +27,6 @@ async function run() {
     let defs = '';
     for (let name in indexJs) {
         let table = indexJs[name];
-        console.log(name)
         if (table.ts) {
             defs+= table.ts(name);
 
