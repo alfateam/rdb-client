@@ -167,6 +167,13 @@
       beforeRequest(callback: (response: Response, options: ResponseOptions) => Promise<void> | void): void;
       beforeResponse(callback: (response: Response, options: ResponseOptions) => Promise<void> | void): void;
       reactive(proxyMethod: (obj: any) => any): void;
+      and(filter: Filter, ...filters: Filter[]): Filter;
+      or(filter: Filter, ...filters: Filter[]): Filter;
+      not(): Filter;
+      query(filter: RawFilter) : Promise<[]>;
+      query<T>(filter: RawFilter) : Promise<T[]>;
+      filter: Filter;
+  
   }
 
   export interface ResponseOptions {

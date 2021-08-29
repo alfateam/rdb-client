@@ -6,8 +6,6 @@ let findNodeModules = require('find-node-modules');
 let fs = require('fs');
 let util = require('util');
 let writeFile = util.promisify(fs.writeFile);
-const copyFile = util.promisify(fs.copyFile);
-
 
 run();
 
@@ -32,13 +30,11 @@ async function run() {
 
         }
     }
-    // fs.copyFileSync(path.join(__dirname, '/../core.d.ts'), path.join(clientDir, '/core.d.ts'))
     let indexDts = path.join(clientDir, '/index.d.ts');
     await writeFile(indexDts, getPrefixTs());
     fs.appendFileSync(indexDts, defs);
     fs.appendFileSync(indexDts, getRdbClientTs(indexJs));
     await writeFile(path.join(clientDir, '/index.ts'), getClientIndexTs())
-    // console.log(indexJs);
     
 }
 
@@ -53,7 +49,6 @@ async function findIndexTs() {
             else if (files.length === 0)
                 resolve();
             else {
-                // const file = fileUrl(path.join(process.cwd(), '/', files[0]));
                 let file = path.join(process.cwd(), '/', files[0]);
                 resolve(file);
             }
