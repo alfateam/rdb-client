@@ -35,7 +35,6 @@ function rdbClient(baseUrl, options = {}) {
 
 	if (options.tables) {
 		for(let name in options.tables) {
-			console.log(name);
 			client[name] = table(options.tables[name]);
 		}
 		client.tables = options.tables;
