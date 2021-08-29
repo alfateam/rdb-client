@@ -13,7 +13,7 @@
     "browser"
   ],
   "bin": {
-    "generate": "bin/generate.mjs"
+    "rdb": "bin/build.js"
   },
   "scripts": {
     "build": "rollup -c rollup.config.js",
