@@ -33,6 +33,9 @@ function rdbClient(options = {}) {
 	let _reactive = options.reactive;
 	let baseUrl = options.db;
 	function client(_options = {}) {
+		if (_options.transaction)
+			_options = {db: options};
+
 		return rdbClient({...options,..._options});
 	}
 
