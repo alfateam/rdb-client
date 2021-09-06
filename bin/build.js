@@ -13,7 +13,8 @@ async function run() {
 	if (!indexTs)
 		return;
 	console.log(`rdb: found schema ${indexTs}`);
-	let clientDir = path.join(__dirname, '../typings/client');
+	let clientDir = path.normalize(path.join(__dirname, '../typings/client'));
+	console.log(`rdb: target ${clientDir}`);
 	let nodeModules = findNodeModules({ cwd: indexTs, relative: false })[0];
 	let outDir = path.join(nodeModules, '/.rdb-client');
 	let indexJsPath = compile(indexTs, { outDir });
