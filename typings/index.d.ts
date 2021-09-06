@@ -1,10 +1,10 @@
 import {Filter} from './core';
-import {RdbClient} from './client/customized';
+import {RdbClient, Config} from './client/customized';
 export * from './core';
 
+
 export interface RdbStatic {
-    (baseUrl: string, options?: any): RdbClient;
-    (db: object, options?: any): RdbClient;
+    (config: Config): RdbClient;
     filter: Filter;
 }      
 

@@ -26,12 +26,14 @@ let targetKey  = Symbol();
 // }
 
 function rdbClient(options = {}) {
+	if (options.transaction)
+		options = {db: options};
 	let beforeResponse = options.beforeResponse;
 	let beforeRequest = options.beforeRequest;
 	let _reactive = options.reactive;
-	let baseUrl = options.baseUrl;
+	let baseUrl = options.db;
 	function client(_options = {}) {
-		return rdbClient({..._options,...options});
+		return rdbClient({...options,..._options});
 	}
 
 	if (options.tables) {

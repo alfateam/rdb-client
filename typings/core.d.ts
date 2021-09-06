@@ -1,4 +1,7 @@
-  
+  export interface Config {
+    db?: unknown | string | Function<unknown|Promise<unknown|string>>;
+    tables?: unknown
+  }  
   export interface RawFilter {
     sql: string | (() => string);
     parameters?: any[];

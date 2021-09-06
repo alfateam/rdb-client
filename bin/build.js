@@ -75,8 +75,7 @@ import {RdbClientBase, RawFilter, Filter, Concurrencies} from '../core';
 export * from 'rdb-client';
 
 export interface RdbStatic {
-    (baseUrl: string): RdbClient;
-    (db: object): RdbClient;
+	(config: Config): RdbClient;
     filter: Filter;
 }      
 
