@@ -1,4 +1,4 @@
-import {Filter} from '../core';
+import {Filter} from './core';
 import {RdbClient} from './client/customized';
 export * from './core';
 

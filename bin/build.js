@@ -22,10 +22,16 @@ async function run() {
 	if (!indexJsPath)
 		return;
 	let indexJs = require(indexJsPath);
-	if ('default' in indexJs)
+	if ('default' in indexJs) {
+
+		console.log('default');
+		console.log(indexJs.default);
 		indexJs = indexJs.default;
-	if (!indexJs.tables)
+	}
+	if (!indexJs.tables) {
+		console.log('no tables');
 		return;
+	}
 	let defs = '';
 	for (let name in indexJs.tables) {
 		let table = indexJs.tables[name];
