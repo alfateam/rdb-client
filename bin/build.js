@@ -8,12 +8,12 @@ let util = require('util');
 let writeFile = util.promisify(fs.writeFile);
 
 run();
-
 async function run() {
 	let indexTs = await findIndexTs();
 	if (!indexTs)
 		return;
-	let clientDir = path.join(path.dirname(indexTs), '/client');
+	console.log(`rdb: found schema ${indexTs}`);
+	let clientDir = path.join(__dirname, '../typings/client');
 	let nodeModules = findNodeModules({ cwd: indexTs, relative: false })[0];
 	let outDir = path.join(nodeModules, '/.rdb-client');
 	let indexJsPath = compile(indexTs, { outDir });
@@ -22,19 +22,22 @@ async function run() {
 	let indexJs = require(indexJsPath);
 	if ('default' in indexJs)
 		indexJs = indexJs.default;
+	if (!indexJs.tables)
+		return;
 	let defs = '';
-	for (let name in indexJs) {
-		let table = indexJs[name];
+	for (let name in indexJs.tables) {
+		let table = indexJs.tables[name];
 		if (table.ts) {
+			console.log('name');
+			console.log(name);
 			defs += table.ts(name);
-
 		}
 	}
-	let indexDts = path.join(clientDir, '/index.d.ts');
+	let indexDts = path.join(clientDir, '/customized.d.ts');
 	await writeFile(indexDts, getPrefixTs());
 	fs.appendFileSync(indexDts, defs);
 	fs.appendFileSync(indexDts, getRdbClientTs(indexJs));
-	await writeFile(path.join(clientDir, '/index.ts'), getClientIndexTs());
+	// await writeFile(path.join(clientDir, '/index.ts'), getClientIndexTs());
 
 }
 
@@ -58,7 +61,7 @@ async function findIndexTs() {
 
 function getPrefixTs() {
 	return `
-import {RdbClientBase, RawFilter, Filter, Concurrencies} from 'rdb-client';
+import {RdbClientBase, RawFilter, Filter, Concurrencies} from '../core';
 export * from 'rdb-client';
 
 export interface RdbStatic {
