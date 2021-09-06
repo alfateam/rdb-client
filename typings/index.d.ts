@@ -1,5 +1,6 @@
 import {Filter} from './core';
 import {RdbClient, Config} from './client/customized';
+export * from './client/customized';
 export * from './core';
 
 
