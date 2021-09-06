@@ -210,7 +210,7 @@ function rdbClient(options = {}) {
 
 			};
 			let innerProxy = new Proxy(array, handler);
-			let arrayProxy = onChange(innerProxy, () => { }, { pathAsArray: true, ignoreDetached: true, onValidate });
+			let arrayProxy = onChange(innerProxy, () => { return;}, { pathAsArray: true, ignoreDetached: true, onValidate });
 			rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
 			enabled = true;
 			return arrayProxy;
@@ -251,7 +251,7 @@ function rdbClient(options = {}) {
 
 			};
 			let innerProxy = new Proxy(row, handler);
-			let rowProxy = onChange(innerProxy, () => { }, { pathAsArray: true, ignoreDetached: true, onValidate });
+			let rowProxy = onChange(innerProxy, () => { return;}, { pathAsArray: true, ignoreDetached: true, onValidate });
 			rootMap.set(row, { jsonMap: new Map(), strategy });
 			enabled = true;
 			return rowProxy;
@@ -305,6 +305,7 @@ function rdbClient(options = {}) {
 			if (obj) {
 				let context = rootMap.get(obj);
 				if (context.strategy !== undefined) {
+					// eslint-disable-next-line @typescript-eslint/no-unused-vars
 					let {limit, ...strategy} = context.strategy;
 					return strategy;
 				}
