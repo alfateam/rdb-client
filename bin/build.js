@@ -46,7 +46,7 @@ async function run() {
 	await writeFile(indexDts, getPrefixTs());
 	console.log('success');
 	fs.appendFileSync(indexDts, defs);
-	fs.appendFileSync(indexDts, getRdbClientTs(indexJs));
+	fs.appendFileSync(indexDts, getRdbClientTs(indexJs.tables));
 	// await writeFile(path.join(clientDir, '/index.ts'), getClientIndexTs());
 
 }
@@ -71,7 +71,7 @@ async function findIndexTs() {
 
 function getPrefixTs() {
 	return `
-import {RdbClientBase, RawFilter, Filter, Concurrencies} from '../core';
+import {RdbClientBase, RawFilter, Filter, Concurrencies, Config} from '../core';
 export * from 'rdb-client';
 
 export interface RdbStatic {
@@ -86,6 +86,7 @@ export default rdbClient;`;
 function getRdbClientTs(tables) {
 	return `
 export interface RdbClient extends RdbClientBase {
+	(config: Config): RdbClient;
     ${getTables()}    
 }
     `;
