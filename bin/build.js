@@ -12,43 +12,31 @@ async function run() {
 	let indexTs = await findIndexTs();
 	if (!indexTs)
 		return;
-	console.log(`rdb: found schema ${indexTs}`);
+	console.log(`Rdb: found schema ${indexTs}`);
 	let clientDir = path.normalize(path.join(__dirname, '../typings/client'));
-	console.log(`rdb: target ${clientDir}`);
 	let nodeModules = findNodeModules({ cwd: indexTs, relative: false })[0];
 	let outDir = path.join(nodeModules, '/.rdb-client');
 	let indexJsPath = compile(indexTs, { outDir });
-	console.log(`rdb: indexJsPath ${indexJsPath}`);
 	if (!indexJsPath)
 		return;
 	let indexJs = require(indexJsPath);
-	if ('default' in indexJs) {
-
-		console.log('default');
-		console.log(indexJs.default);
+	if ('default' in indexJs)
 		indexJs = indexJs.default;
-	}
 	if (!indexJs.tables) {
-		console.log('no tables');
+		console.log(`Rdb: no tables found.`);
 		return;
 	}
 	let defs = '';
 	for (let name in indexJs.tables) {
 		let table = indexJs.tables[name];
-		if (table.ts) {
-			console.log('name');
-			console.log(name);
+		if (table.ts)
 			defs += table.ts(name);
-		}
 	}
 	let indexDts = path.join(clientDir, '/customized.d.ts');
-	console.log(`rdb: writeFile ${indexDts}`);
 	await writeFile(indexDts, getPrefixTs());
-	console.log('success');
 	fs.appendFileSync(indexDts, defs);
 	fs.appendFileSync(indexDts, getRdbClientTs(indexJs.tables));
-	// await writeFile(path.join(clientDir, '/index.ts'), getClientIndexTs());
-
+	console.log(`Rdb: created ts typings successfully.`);
 }
 
 async function findIndexTs() {
@@ -101,22 +89,4 @@ export interface RdbClient extends RdbClientBase {
 		}
 		return result;
 	}
-
 }
-
-function getClientIndexTs() {
-	return `
-    import {RdbClient} from './index.d';
-    import * as d from './index.d';
-    import rdbClient from 'rdb-client';
-    import tables from '../index';
-    
-    function create(db: any) : RdbClient {
-        const client = rdbClient(db, {tables});
-        return client as RdbClient;
-    }
-    
-    export import RdbClient = d.RdbClient;
-    export default create;`;
-}
-
