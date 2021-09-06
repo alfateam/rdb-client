@@ -7,7 +7,7 @@ let fs = require('fs');
 let util = require('util');
 let writeFile = util.promisify(fs.writeFile);
 
-run();
+run().then(null, console.log);
 async function run() {
 	let indexTs = await findIndexTs();
 	if (!indexTs)
@@ -18,6 +18,7 @@ async function run() {
 	let nodeModules = findNodeModules({ cwd: indexTs, relative: false })[0];
 	let outDir = path.join(nodeModules, '/.rdb-client');
 	let indexJsPath = compile(indexTs, { outDir });
+	console.log(`rdb: indexJsPath ${indexJsPath}`);
 	if (!indexJsPath)
 		return;
 	let indexJs = require(indexJsPath);
