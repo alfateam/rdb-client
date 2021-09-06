@@ -35,7 +35,9 @@ async function run() {
 		}
 	}
 	let indexDts = path.join(clientDir, '/customized.d.ts');
+	console.log(`rdb: writeFile ${indexDts}`);
 	await writeFile(indexDts, getPrefixTs());
+	console.log('success');
 	fs.appendFileSync(indexDts, defs);
 	fs.appendFileSync(indexDts, getRdbClientTs(indexJs));
 	// await writeFile(path.join(clientDir, '/index.ts'), getClientIndexTs());
