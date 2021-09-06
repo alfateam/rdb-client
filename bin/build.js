@@ -9,6 +9,7 @@ let writeFile = util.promisify(fs.writeFile);
 
 run().then(null, console.log);
 async function run() {
+	console.log(process.cwd());
 	let indexTs = await findIndexTs();
 	if (!indexTs)
 		return;
