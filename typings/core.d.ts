@@ -1,5 +1,5 @@
   export interface Config {
-    db?: unknown | string | Function<unknown|Promise<unknown|string>>;
+    db?: unknown | string | (() => unknown | string);
     tables?: unknown
   }  
   export interface RawFilter {

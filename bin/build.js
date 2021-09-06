@@ -8,7 +8,7 @@ let util = require('util');
 let writeFile = util.promisify(fs.writeFile);
 
 run().then(null, console.log);
-async function run() {	
+async function run() {
 	let indexTs = await findIndexTs();
 	if (!indexTs)
 		return;
