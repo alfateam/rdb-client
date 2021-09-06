@@ -57,6 +57,9 @@ function rdbClient(baseUrl, options = {}) {
 		or: client.or,
 		and: client.and,
 		not: client.not,
+		toJSON: function() {
+			return;
+		}
 	};
 	client.query = query;
 	client.transaction = transaction;
@@ -165,6 +168,7 @@ function rdbClient(baseUrl, options = {}) {
 				args
 			});
 			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
+			console.dir(body)
 			return adapter.post(body);
 		}
 
