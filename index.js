@@ -7,23 +7,23 @@ let targetKey  = Symbol();
 
 // overrideConsole();
 
-function overrideConsole() {
-	let options = ['log', 'dir', 'time', 'timeEnd'];
-	for(let p of options) {
-		let original = console[p];
-		console[p] = consoleFn.bind(original);
-	}
+// function overrideConsole() {
+// 	let options = ['log', 'dir', 'time', 'timeEnd'];
+// 	for(let p of options) {
+// 		let original = console[p];
+// 		console[p] = consoleFn.bind(original);
+// 	}
 
-	function consoleFn() {
-		let [obj, ...args] = arguments;
-		if (obj[targetKey]) {
-			let inner = onChange.target(obj) ? onChange.target(obj)[targetKey] : obj[targetKey];
-			return this.apply(console, [inner].concat(args));
-		}
-		else
-			return this.apply(console, arguments);
-	}
-}
+// 	function consoleFn() {
+// 		let [obj, ...args] = arguments;
+// 		if (obj[targetKey]) {
+// 			let inner = onChange.target(obj) ? onChange.target(obj)[targetKey] : obj[targetKey];
+// 			return this.apply(console, [inner].concat(args));
+// 		}
+// 		else
+// 			return this.apply(console, arguments);
+// 	}
+// }
 
 function rdbClient(baseUrl, options = {}) {
 	let beforeResponse = options.beforeResponse;
@@ -87,7 +87,7 @@ function rdbClient(baseUrl, options = {}) {
 		if (!db.transaction)
 			throw new Error("Illegal operation");
 		let result;
-		await db.transaction(async() => {
+		await db.transaction(async () => {
 			result = fn(db);
 		});
 		return result;
@@ -168,7 +168,6 @@ function rdbClient(baseUrl, options = {}) {
 				args
 			});
 			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
-			console.dir(body)
 			return adapter.post(body);
 		}
 

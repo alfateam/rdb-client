@@ -14,10 +14,10 @@ module.exports = {
 		"sourceType": "module",
 		"ecmaVersion": 2018
 	},
-	"ignorePatterns": ["*esm.js"],
+	"ignorePatterns": ["*esm.js", "*.ts"],
 	"rules": {
+		"@typescript-eslint/no-var-requires": 0,
 		"indent": ["error", "tab"],
-		"linebreak-style": ["error", "unix"],
 		"semi": ["error", "always"],
 		"no-console": "off",
 		"no-debugger": "off",
@@ -36,4 +36,4 @@ module.exports = {
 		"jest/valid-expect": "error"
 	},
 	"plugins": ["jest", "@typescript-eslint"]
-}
+};

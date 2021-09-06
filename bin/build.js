@@ -34,7 +34,7 @@ async function run() {
 	await writeFile(indexDts, getPrefixTs());
 	fs.appendFileSync(indexDts, defs);
 	fs.appendFileSync(indexDts, getRdbClientTs(indexJs));
-	await writeFile(path.join(clientDir, '/index.ts'), getClientIndexTs())
+	await writeFile(path.join(clientDir, '/index.ts'), getClientIndexTs());
 
 }
 
@@ -42,8 +42,8 @@ async function findIndexTs() {
 	let options = {
 		ignore: "**node_modules/**"
 	};
-	return new Promise(function (resolve, reject) {
-		glob("**/rdb/index.ts", options, async function (err, files) {
+	return new Promise(function(resolve, reject) {
+		glob("**/rdb/index.ts", options, async function(err, files) {
 			if (err)
 				reject(err);
 			else if (files.length === 0)
@@ -52,8 +52,8 @@ async function findIndexTs() {
 				let file = path.join(process.cwd(), '/', files[0]);
 				resolve(file);
 			}
-		})
-	})
+		});
+	});
 }
 
 function getPrefixTs() {
