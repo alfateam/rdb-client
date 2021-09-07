@@ -34,8 +34,7 @@ function rdbClient(options = {}) {
 	let baseUrl = options.db;
 	function client(_options = {}) {
 		if (_options.transaction)
-			_options = {db: options};
-
+			_options = {db: _options};
 		return rdbClient({...options,..._options});
 	}
 
@@ -99,7 +98,7 @@ function rdbClient(options = {}) {
 		return result;
 	}
 
-	function table(url, tableOptions) {
+	function table(url, tableOptions) {	
 		if (baseUrl && typeof url === 'string')
 			url = baseUrl + url;
 		else if (baseUrl && baseUrl.transaction) {

@@ -13,7 +13,7 @@
     "browser"
   ],
   "bin": {
-    "rdb": "bin/build.js"
+    "rdb": "bin/rdb.js"
   },
   "scripts": {
     "build": "rollup -c rollup.config.js",
@@ -21,7 +21,7 @@
     "coveralls": "jest --coverage && cat ./coverage/lcov.info | coveralls",
     "lint": "eslint ./",
     "lint-fix": "eslint ./ --fix",
-    "postinstall": "node bin/build.js"
+    "postinstall": "node bin/postinstall.js"
   },
   "author": "Lars-Erik Roald <lars.roald@gmail.com>",
   "license": "ISC",

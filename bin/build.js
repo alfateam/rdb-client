@@ -1,4 +1,3 @@
-#! /usr/bin/env node
 let compile = require('./compile');
 let glob = require('glob');
 let path = require('path');
@@ -7,9 +6,8 @@ let fs = require('fs');
 let util = require('util');
 let writeFile = util.promisify(fs.writeFile);
 
-run().then(null, console.log);
-async function run() {
-	let indexTs = await findIndexTs();
+async function run(cwd) {
+	let indexTs = await findIndexTs(cwd);
 	if (!indexTs)
 		return;
 	console.log(`Rdb: found schema ${indexTs}`);
@@ -39,7 +37,7 @@ async function run() {
 	console.log(`Rdb: created ts typings successfully.`);
 }
 
-async function findIndexTs() {
+async function findIndexTs(cwd) {
 	let options = {
 		ignore: "**node_modules/**"
 	};
@@ -50,7 +48,7 @@ async function findIndexTs() {
 			else if (files.length === 0)
 				resolve();
 			else {
-				let file = path.join(process.cwd(), '/', files[0]);
+				let file = path.join(cwd, '/', files[0]);
 				resolve(file);
 			}
 		});
@@ -89,4 +87,8 @@ export interface RdbClient extends RdbClientBase {
 		}
 		return result;
 	}
+}
+
+module.exports = function(cwd) {
+	run(cwd).then(null, console.log);
 }
