@@ -39,7 +39,8 @@ async function run(cwd) {
 
 async function findIndexTs(cwd) {
 	let options = {
-		ignore: "**node_modules/**"
+		ignore: "**node_modules/**",
+		cwd
 	};
 	return new Promise(function(resolve, reject) {
 		glob("**/rdb/index.ts", options, async function(err, files) {
