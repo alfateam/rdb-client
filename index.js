@@ -212,20 +212,18 @@ function rdbClient(options = {}) {
 
 			};
 			let innerProxy = new Proxy(array, handler);
-			let arrayProxy = onChange(innerProxy, () => { return;}, { pathAsArray: true, ignoreDetached: true, onValidate });
+			let arrayProxy = onChange(innerProxy, _onChange, { pathAsArray: true, ignoreDetached: true});
 			rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
 			enabled = true;
 			return arrayProxy;
 
-			function onValidate(path) {
+			function _onChange(path, value, previousValue) {
 				if (!enabled)
-					return true;
-				if (enabled && path.length > 0) {
-					let { jsonMap } = rootMap.get(array);
-					if (!jsonMap.has(array[path[0]]))
-						jsonMap.set(array[path[0]], stringify(array[path[0]]));
-				}
-				return true;
+					return;
+				let { jsonMap } = rootMap.get(array);
+				if (!jsonMap.has(array[path[0]])) {
+					jsonMap.set(array[path[0]], stringify(previousValue));
+				}	
 			}
 		}
 
@@ -284,7 +282,6 @@ function rdbClient(options = {}) {
 			let deletePatch = createPatch(removed, [], meta);
 			let updatePatch = createPatch(changed.map(x => JSON.parse(jsonMap.get(x))), changed, meta);
 			let patch = [...insertPatch, ...updatePatch, ...deletePatch];
-
 			let body = stringify({ patch, options: { strategy, ...options} });
 			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
 			let { updated, inserted } = await adapter.patch(body);
