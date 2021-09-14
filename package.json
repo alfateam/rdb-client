@@ -40,7 +40,7 @@
     "file-url": "^4.0.0",
     "find-node-modules": "^2.1.2",
     "isomorphic-fetch": "^3.0.0",
-    "on-change": "^2.2.3",
+    "on-change": "^3.0.2",
     "rfc6902": "^3.0.4",
     "uuid": "^8.3.2",
     "typescript": "^4.4.2"

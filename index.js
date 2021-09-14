@@ -212,19 +212,22 @@ function rdbClient(options = {}) {
 
 			};
 			let innerProxy = new Proxy(array, handler);
-			let arrayProxy = onChange(innerProxy, _onChange, { pathAsArray: true, ignoreDetached: true});
+			let arrayProxy = onChange(innerProxy, () => { return;}, { pathAsArray: true, ignoreDetached: true, onValidate });
 			rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
 			enabled = true;
 			return arrayProxy;
 
-			function _onChange(path, value, previousValue) {
+			function onValidate(path) {
 				if (!enabled)
-					return;
-				let { jsonMap } = rootMap.get(array);
-				if (!jsonMap.has(array[path[0]])) {
-					jsonMap.set(array[path[0]], stringify(previousValue));
-				}	
+					return true;
+				if (enabled && path.length > 0) {
+					let { jsonMap } = rootMap.get(array);
+					if (!jsonMap.has(array[path[0]]))
+						jsonMap.set(array[path[0]], stringify(array[path[0]]));
+				}
+				return true;
 			}
+
 		}
 
 		function proxifyRow(row, strategy) {
