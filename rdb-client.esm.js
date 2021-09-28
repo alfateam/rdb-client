@@ -34,17 +34,17 @@ const isBuiltin$2 = {
 
 var isBuiltin_1 = isBuiltin$2;
 
-var isArray$2 = Array.isArray;
+var isArray$3 = Array.isArray;
 
 var isSymbol$3 = value => typeof value === 'symbol';
 
 const {PATH_SEPARATOR} = constants;
-const isArray$1 = isArray$2;
+const isArray$2 = isArray$3;
 const isSymbol$2 = isSymbol$3;
 
 var path$3 = {
 	after: (path, subPath) => {
-		if (isArray$1(path)) {
+		if (isArray$2(path)) {
 			return path.slice(subPath.length);
 		}
 
@@ -55,7 +55,7 @@ var path$3 = {
 		return path.slice(subPath.length + 1);
 	},
 	concat: (path, key) => {
-		if (isArray$1(path)) {
+		if (isArray$2(path)) {
 			path = path.slice();
 
 			if (key) {
@@ -80,7 +80,7 @@ var path$3 = {
 		return path;
 	},
 	initial: path => {
-		if (isArray$1(path)) {
+		if (isArray$2(path)) {
 			return path.slice(0, -1);
 		}
 
@@ -97,7 +97,7 @@ var path$3 = {
 		return path.slice(0, index);
 	},
 	last: path => {
-		if (isArray$1(path)) {
+		if (isArray$2(path)) {
 			return path[path.length - 1] || '';
 		}
 
@@ -114,7 +114,7 @@ var path$3 = {
 		return path.slice(index + 1);
 	},
 	walk: (path, callback) => {
-		if (isArray$1(path)) {
+		if (isArray$2(path)) {
 			path.forEach(key => callback(key));
 		} else if (path !== '') {
 			let position = 0;
@@ -135,6 +135,15 @@ var path$3 = {
 				}
 			}
 		}
+	},
+	get(object, path) {
+		this.walk(path, key => {
+			if (object) {
+				object = object[key];
+			}
+		});
+
+		return object;
 	}
 };
 
@@ -288,13 +297,7 @@ class Cache$1 {
 	}
 
 	isDetached(target, object) {
-		path$2.walk(this.getPath(target), key => {
-			if (object) {
-				object = object[key];
-			}
-		});
-
-		return !Object.is(target, object);
+		return !Object.is(target, path$2.get(object, this.getPath(target)));
 	}
 
 	defineProperty(target, property, descriptor) {
@@ -371,20 +374,58 @@ class Cache$1 {
 
 var cache = Cache$1;
 
-var isObject$1 = value => toString.call(value) === '[object Object]';
+var isObject$2 = value => toString.call(value) === '[object Object]';
 
-const path$1 = path$3;
-const isArray = isArray$2;
-const isBuiltin$1 = isBuiltin_1;
-const isObject = isObject$1;
+var isDiffCertain$1 = () => true;
 
-const certainChange = () => true;
-
-const shallowEqualArrays = (clone, value) => {
+var isDiffArrays$1 = (clone, value) => {
 	return clone.length !== value.length || clone.some((item, index) => value[index] !== item);
 };
 
-const shallowEqualSets = (clone, value) => {
+const IMMUTABLE_OBJECT_METHODS$2 = new Set([
+	'hasOwnProperty',
+	'isPrototypeOf',
+	'propertyIsEnumerable',
+	'toLocaleString',
+	'toString',
+	'valueOf'
+]);
+
+var object = {IMMUTABLE_OBJECT_METHODS: IMMUTABLE_OBJECT_METHODS$2};
+
+const isDiffCertain = isDiffCertain$1;
+const isDiffArrays = isDiffArrays$1;
+const {IMMUTABLE_OBJECT_METHODS: IMMUTABLE_OBJECT_METHODS$1} = object;
+
+const IMMUTABLE_ARRAY_METHODS = new Set([
+	'concat',
+	'includes',
+	'indexOf',
+	'join',
+	'keys',
+	'lastIndexOf'
+]);
+
+const MUTABLE_ARRAY_METHODS$1 = {
+	push: isDiffCertain,
+	pop: isDiffCertain,
+	shift: isDiffCertain,
+	unshift: isDiffCertain,
+	copyWithin: isDiffArrays,
+	reverse: isDiffArrays,
+	sort: isDiffArrays,
+	splice: isDiffArrays,
+	flat: isDiffArrays,
+	fill: isDiffArrays
+};
+
+const HANDLED_ARRAY_METHODS$1 = new Set([...IMMUTABLE_OBJECT_METHODS$1]
+	.concat([...IMMUTABLE_ARRAY_METHODS])
+	.concat(Object.keys(MUTABLE_ARRAY_METHODS$1)));
+
+var array = {MUTABLE_ARRAY_METHODS: MUTABLE_ARRAY_METHODS$1, HANDLED_ARRAY_METHODS: HANDLED_ARRAY_METHODS$1};
+
+var isDiffSets$1 = (clone, value) => {
 	if (clone.size !== value.size) {
 		return true;
 	}
@@ -398,7 +439,38 @@ const shallowEqualSets = (clone, value) => {
 	return false;
 };
 
-const shallowEqualMaps = (clone, value) => {
+const isDiffSets = isDiffSets$1;
+
+const COLLECTION_ITERATOR_METHODS$1 = [
+	'keys',
+	'values',
+	'entries'
+];
+
+const IMMUTABLE_SET_METHODS$1 = new Set([
+	'has',
+	'toString'
+]);
+
+const MUTABLE_SET_METHODS$1 = {
+	add: isDiffSets,
+	clear: isDiffSets,
+	delete: isDiffSets,
+	forEach: isDiffSets
+};
+
+const HANDLED_SET_METHODS$1 = new Set([...IMMUTABLE_SET_METHODS$1]
+	.concat(Object.keys(MUTABLE_SET_METHODS$1))
+	.concat(COLLECTION_ITERATOR_METHODS$1));
+
+var set = {
+	IMMUTABLE_SET_METHODS: IMMUTABLE_SET_METHODS$1,
+	MUTABLE_SET_METHODS: MUTABLE_SET_METHODS$1,
+	HANDLED_SET_METHODS: HANDLED_SET_METHODS$1,
+	COLLECTION_ITERATOR_METHODS: COLLECTION_ITERATOR_METHODS$1
+};
+
+var isDiffMaps$1 = (clone, value) => {
 	if (clone.size !== value.size) {
 		return true;
 	}
@@ -415,102 +487,64 @@ const shallowEqualMaps = (clone, value) => {
 	return false;
 };
 
-const IMMUTABLE_OBJECT_METHODS = new Set([
-	'hasOwnProperty',
-	'isPrototypeOf',
-	'propertyIsEnumerable',
-	'toLocaleString',
-	'toString',
-	'valueOf'
-]);
-
-const IMMUTABLE_ARRAY_METHODS = new Set([
-	'concat',
-	'includes',
-	'indexOf',
-	'join',
-	'keys',
-	'lastIndexOf'
-]);
-
-const IMMUTABLE_SET_METHODS = new Set([
-	'has',
-	'toString'
-]);
+const {IMMUTABLE_SET_METHODS, COLLECTION_ITERATOR_METHODS} = set;
+const isDiffMaps = isDiffMaps$1;
 
 const IMMUTABLE_MAP_METHODS = new Set([...IMMUTABLE_SET_METHODS].concat(['get']));
 
-const SHALLOW_MUTABLE_ARRAY_METHODS = {
-	push: certainChange,
-	pop: certainChange,
-	shift: certainChange,
-	unshift: certainChange,
-	copyWithin: shallowEqualArrays,
-	reverse: shallowEqualArrays,
-	sort: shallowEqualArrays,
-	splice: shallowEqualArrays,
-	flat: shallowEqualArrays,
-	fill: shallowEqualArrays
+const MUTABLE_MAP_METHODS$1 = {
+	set: isDiffMaps,
+	clear: isDiffMaps,
+	delete: isDiffMaps,
+	forEach: isDiffMaps
 };
 
-const SHALLOW_MUTABLE_SET_METHODS = {
-	add: shallowEqualSets,
-	clear: shallowEqualSets,
-	delete: shallowEqualSets
-};
-
-const COLLECTION_ITERATOR_METHODS = [
-	'keys',
-	'values',
-	'entries'
-];
-
-const SHALLOW_MUTABLE_MAP_METHODS = {
-	set: shallowEqualMaps,
-	clear: shallowEqualMaps,
-	delete: shallowEqualMaps
-};
-
-const HANDLED_ARRAY_METHODS = new Set([...IMMUTABLE_OBJECT_METHODS]
-	.concat([...IMMUTABLE_ARRAY_METHODS])
-	.concat(Object.keys(SHALLOW_MUTABLE_ARRAY_METHODS)));
-
-const HANDLED_SET_METHODS = new Set([...IMMUTABLE_SET_METHODS]
-	.concat(Object.keys(SHALLOW_MUTABLE_SET_METHODS))
+const HANDLED_MAP_METHODS$1 = new Set([...IMMUTABLE_MAP_METHODS]
+	.concat(Object.keys(MUTABLE_MAP_METHODS$1))
 	.concat(COLLECTION_ITERATOR_METHODS));
 
-const HANDLED_MAP_METHODS = new Set([...IMMUTABLE_MAP_METHODS]
-	.concat(Object.keys(SHALLOW_MUTABLE_MAP_METHODS))
-	.concat(COLLECTION_ITERATOR_METHODS));
+var map = {MUTABLE_MAP_METHODS: MUTABLE_MAP_METHODS$1, HANDLED_MAP_METHODS: HANDLED_MAP_METHODS$1};
 
-class Clone {
-	constructor(value, path, argumentsList) {
+const path$1 = path$3;
+const isArray$1 = isArray$3;
+const isObject$1 = isObject$2;
+const {MUTABLE_ARRAY_METHODS} = array;
+const {MUTABLE_SET_METHODS} = set;
+const {MUTABLE_MAP_METHODS} = map;
+const {IMMUTABLE_OBJECT_METHODS} = object;
+
+var cloneObject = class CloneObject {
+	constructor(value, path, argumentsList, hasOnValidate) {
 		this._path = path;
 		this._isChanged = false;
 		this._clonedCache = new Set();
+		this._hasOnValidate = hasOnValidate;
+		this._changes = hasOnValidate ? [] : null;
 
-		if (value instanceof WeakSet) {
-			this._weakValue = value.has(argumentsList[0]);
-		} else if (value instanceof WeakMap) {
-			this._weakValue = value.get(argumentsList[0]);
-		} else {
-			this.clone = path === undefined ? value : this._shallowClone(value);
-		}
+		this.clone = path === undefined ? value : this._shallowClone(value);
+	}
+
+	static isHandledMethod(name) {
+		return IMMUTABLE_OBJECT_METHODS.has(name);
 	}
 
 	_shallowClone(value) {
-		let clone;
+		let clone = value;
 
-		if (isObject(value)) {
+		if (isObject$1(value)) {
 			clone = {...value};
-		} else if (isArray(value)) {
+		} else if (isArray$1(value)) {
 			clone = [...value];
 		} else if (value instanceof Date) {
 			clone = new Date(value);
 		} else if (value instanceof Set) {
-			clone = new Set(value);
+			clone = new Set([...value].map(item => this._shallowClone(item)));
 		} else if (value instanceof Map) {
-			clone = new Map(value);
+			clone = new Map();
+
+			for (const [key, item] of value.entries()) {
+				clone.set(key, this._shallowClone(item));
+			}
 		}
 
 		this._clonedCache.add(clone);
@@ -518,16 +552,14 @@ class Clone {
 		return clone;
 	}
 
-	preferredThisArg(target, thisArg, thisProxyTarget) {
-		const {name} = target;
-
-		if (SmartClone$1.isHandledMethod(thisProxyTarget, name)) {
-			if (isArray(thisProxyTarget)) {
-				this._onIsChanged = SHALLOW_MUTABLE_ARRAY_METHODS[name];
+	preferredThisArg(isHandledMethod, name, thisArg, thisProxyTarget) {
+		if (isHandledMethod) {
+			if (isArray$1(thisProxyTarget)) {
+				this._onIsChanged = MUTABLE_ARRAY_METHODS[name];
 			} else if (thisProxyTarget instanceof Set) {
-				this._onIsChanged = SHALLOW_MUTABLE_SET_METHODS[name];
+				this._onIsChanged = MUTABLE_SET_METHODS[name];
 			} else if (thisProxyTarget instanceof Map) {
-				this._onIsChanged = SHALLOW_MUTABLE_MAP_METHODS[name];
+				this._onIsChanged = MUTABLE_MAP_METHODS[name];
 			}
 
 			return thisProxyTarget;
@@ -537,45 +569,182 @@ class Clone {
 	}
 
 	update(fullPath, property, value) {
-		if (value !== undefined && property !== 'length') {
+		const changePath = path$1.after(fullPath, this._path);
+
+		if (property !== 'length') {
 			let object = this.clone;
 
-			path$1.walk(path$1.after(fullPath, this._path), key => {
-				if (!this._clonedCache.has(object[key])) {
-					object[key] = this._shallowClone(object[key]);
-				}
+			path$1.walk(changePath, key => {
+				if (object && object[key]) {
+					if (!this._clonedCache.has(object[key])) {
+						object[key] = this._shallowClone(object[key]);
+					}
 
-				object = object[key];
+					object = object[key];
+				}
 			});
 
-			object[property] = value;
+			if (this._hasOnValidate) {
+				this._changes.push({
+					path: changePath,
+					property,
+					previous: value
+				});
+			}
+
+			if (object && object[property]) {
+				object[property] = value;
+			}
 		}
 
 		this._isChanged = true;
 	}
 
-	isChanged(value, equals, argumentsList) {
-		if (value instanceof Date) {
-			return !equals(this.clone.valueOf(), value.valueOf());
-		}
+	undo(object) {
+		let change;
 
-		if (value instanceof WeakSet) {
-			return this._weakValue !== value.has(argumentsList[0]);
-		}
+		for (let index = this._changes.length - 1; index !== -1; index--) {
+			change = this._changes[index];
 
-		if (value instanceof WeakMap) {
-			return this._weakValue !== value.get(argumentsList[0]);
+			path$1.get(object, change.path)[change.property] = change.previous;
 		}
+	}
 
+	isChanged(value) {
 		return this._onIsChanged === undefined ?
 			this._isChanged :
 			this._onIsChanged(this.clone, value);
 	}
-}
+};
+
+const CloneObject$6 = cloneObject;
+const {HANDLED_ARRAY_METHODS} = array;
+
+var cloneArray = class CloneArray extends CloneObject$6 {
+	static isHandledMethod(name) {
+		return HANDLED_ARRAY_METHODS.has(name);
+	}
+};
+
+const CloneObject$5 = cloneObject;
+
+var cloneDate = class CloneDate extends CloneObject$5 {
+	undo(object) {
+		object.setTime(this.clone.getTime());
+	}
+
+	isChanged(value, equals) {
+		return !equals(this.clone.valueOf(), value.valueOf());
+	}
+};
+
+const CloneObject$4 = cloneObject;
+const {HANDLED_SET_METHODS} = set;
+
+var cloneSet = class CloneSet extends CloneObject$4 {
+	static isHandledMethod(name) {
+		return HANDLED_SET_METHODS.has(name);
+	}
+
+	undo(object) {
+		this.clone.forEach(value => {
+			object.add(value);
+		});
+		object.forEach(value => {
+			if (!this.clone.has(value)) {
+				object.delete(value);
+			}
+		});
+	}
+};
+
+const CloneObject$3 = cloneObject;
+const {HANDLED_MAP_METHODS} = map;
+
+var cloneMap = class CloneMap extends CloneObject$3 {
+	static isHandledMethod(name) {
+		return HANDLED_MAP_METHODS.has(name);
+	}
+
+	undo(object) {
+		for (const [key, value] of this.clone.entries()) {
+			object.set(key, value);
+		}
+
+		for (const key of object.keys()) {
+			if (!this.clone.has(key)) {
+				object.delete(key);
+			}
+		}
+	}
+};
+
+const CloneObject$2 = cloneObject;
+
+var cloneWeakset = class CloneWeakSet extends CloneObject$2 {
+	constructor(value, path, argumentsList, hasOnValidate) {
+		super(undefined, path, argumentsList, hasOnValidate);
+
+		this._arg1 = argumentsList[0];
+		this._weakValue = value.has(this._arg1);
+	}
+
+	isChanged(value) {
+		return this._weakValue !== value.has(this._arg1);
+	}
+
+	undo(object) {
+		if (this._weakValue && !object.has(this._arg1)) {
+			object.add(this._arg1);
+		} else {
+			object.delete(this._arg1);
+		}
+	}
+};
+
+const CloneObject$1 = cloneObject;
+
+var cloneWeakmap = class CloneWeakMap extends CloneObject$1 {
+	constructor(value, path, argumentsList, hasOnValidate) {
+		super(undefined, path, argumentsList, hasOnValidate);
+
+		this._weakKey = argumentsList[0];
+		this._weakHas = value.has(this._weakKey);
+		this._weakValue = value.get(this._weakKey);
+	}
+
+	isChanged(value) {
+		return this._weakValue !== value.get(this._weakKey);
+	}
+
+	undo(object) {
+		const weakHas = object.has(this._weakKey);
+
+		if (this._weakHas && !weakHas) {
+			object.set(this._weakKey, this._weakValue);
+		} else if (!this._weakHas && weakHas) {
+			object.delete(this._weakKey);
+		} else if (this._weakValue !== object.get(this._weakKey)) {
+			object.set(this._weakKey, this._weakValue);
+		}
+	}
+};
+
+const isArray = isArray$3;
+const isBuiltin$1 = isBuiltin_1;
+const isObject = isObject$2;
+const CloneObject = cloneObject;
+const CloneArray = cloneArray;
+const CloneDate = cloneDate;
+const CloneSet = cloneSet;
+const CloneMap = cloneMap;
+const CloneWeakSet = cloneWeakset;
+const CloneWeakMap = cloneWeakmap;
 
 class SmartClone$1 {
-	constructor() {
-		this.stack = [];
+	constructor(hasOnValidate) {
+		this._stack = [];
+		this._hasOnValidate = hasOnValidate;
 	}
 
 	static isHandledType(value) {
@@ -586,46 +755,74 @@ class SmartClone$1 {
 
 	static isHandledMethod(target, name) {
 		if (isObject(target)) {
-			return IMMUTABLE_OBJECT_METHODS.has(name);
+			return CloneObject.isHandledMethod(name);
 		}
 
 		if (isArray(target)) {
-			return HANDLED_ARRAY_METHODS.has(name);
+			return CloneArray.isHandledMethod(name);
 		}
 
 		if (target instanceof Set) {
-			return HANDLED_SET_METHODS.has(name);
+			return CloneSet.isHandledMethod(name);
 		}
 
 		if (target instanceof Map) {
-			return HANDLED_MAP_METHODS.has(name);
+			return CloneMap.isHandledMethod(name);
 		}
 
 		return isBuiltin$1.withMutableMethods(target);
 	}
 
 	get isCloning() {
-		return this.stack.length !== 0;
+		return this._stack.length !== 0;
 	}
 
 	start(value, path, argumentsList) {
-		this.stack.push(new Clone(value, path, argumentsList));
+		let CloneClass = CloneObject;
+
+		if (isArray(value)) {
+			CloneClass = CloneArray;
+		} else if (value instanceof Date) {
+			CloneClass = CloneDate;
+		} else if (value instanceof Set) {
+			CloneClass = CloneSet;
+		} else if (value instanceof Map) {
+			CloneClass = CloneMap;
+		} else if (value instanceof WeakSet) {
+			CloneClass = CloneWeakSet;
+		} else if (value instanceof WeakMap) {
+			CloneClass = CloneWeakMap;
+		}
+
+		this._stack.push(new CloneClass(value, path, argumentsList, this._hasOnValidate));
 	}
 
 	update(fullPath, property, value) {
-		this.stack[this.stack.length - 1].update(fullPath, property, value);
+		this._stack[this._stack.length - 1].update(fullPath, property, value);
 	}
 
 	preferredThisArg(target, thisArg, thisProxyTarget) {
-		return this.stack[this.stack.length - 1].preferredThisArg(target, thisArg, thisProxyTarget);
+		const {name} = target;
+		const isHandledMethod = SmartClone$1.isHandledMethod(thisProxyTarget, name);
+
+		return this._stack[this._stack.length - 1]
+			.preferredThisArg(isHandledMethod, name, thisArg, thisProxyTarget);
 	}
 
-	isChanged(isMutable, value, equals, argumentsList) {
-		return this.stack[this.stack.length - 1].isChanged(isMutable, value, equals, argumentsList);
+	isChanged(isMutable, value, equals) {
+		return this._stack[this._stack.length - 1].isChanged(isMutable, value, equals);
+	}
+
+	undo(object) {
+		if (this._previousClone !== undefined) {
+			this._previousClone.undo(object);
+		}
 	}
 
 	stop() {
-		return this.stack.pop().clone;
+		this._previousClone = this._stack.pop();
+
+		return this._previousClone.clone;
 	}
 }
 
@@ -647,7 +844,8 @@ const defaultOptions = {
 	pathAsArray: false,
 	ignoreSymbols: false,
 	ignoreUnderscores: false,
-	ignoreDetached: false
+	ignoreDetached: false,
+	details: false
 };
 
 const onChange$1 = (object, onChange, options = {}) => {
@@ -656,34 +854,40 @@ const onChange$1 = (object, onChange, options = {}) => {
 		...options
 	};
 	const proxyTarget = Symbol('ProxyTarget');
-	const {equals, isShallow, ignoreDetached} = options;
+	const {equals, isShallow, ignoreDetached, details} = options;
 	const cache = new Cache(equals);
-	const smartClone = new SmartClone();
+	const hasOnValidate = typeof options.onValidate === 'function';
+	const smartClone = new SmartClone(hasOnValidate);
 
-	const handleChangeOnTarget = (target, property, previous, value) => {
+	// eslint-disable-next-line max-params
+	const validate = (target, property, value, previous, applyData) => {
+		return !hasOnValidate ||
+			smartClone.isCloning ||
+			options.onValidate(path.concat(cache.getPath(target), property), value, previous, applyData) === true;
+	};
+
+	const handleChangeOnTarget = (target, property, value, previous) => {
 		if (
 			!ignoreProperty(cache, options, property) &&
 			!(ignoreDetached && cache.isDetached(target, object))
 		) {
-			handleChange(cache.getPath(target), property, previous, value);
+			handleChange(cache.getPath(target), property, value, previous);
 		}
 	};
 
 	// eslint-disable-next-line max-params
-	const handleChange = (changePath, property, previous, value, name) => {
+	const handleChange = (changePath, property, value, previous, applyData) => {
 		if (smartClone.isCloning) {
 			smartClone.update(changePath, property, previous);
 		} else {
-			onChange(path.concat(changePath, property), value, previous, name);
+			onChange(path.concat(changePath, property), value, previous, applyData);
 		}
 	};
 
 	const getProxyTarget = value => {
-		if (value) {
-			return value[proxyTarget] || value;
-		}
-
-		return value;
+		return value ?
+			(value[proxyTarget] || value) :
+			value;
 	};
 
 	const prepareValue = (value, target, property, basePath) => {
@@ -734,26 +938,35 @@ const onChange$1 = (object, onChange, options = {}) => {
 
 			const reflectTarget = target[proxyTarget] || target;
 			const previous = reflectTarget[property];
-			const hasProperty = property in target;
 
-			if (cache.setProperty(reflectTarget, property, value, receiver, previous)) {
-				if (!equals(previous, value) || !hasProperty) {
-					handleChangeOnTarget(target, property, previous, value);
-				}
+			if (equals(previous, value) && property in target) {
+				return true;
+			}
+
+			const isValid = validate(target, property, value, previous);
+
+			if (
+				isValid &&
+				cache.setProperty(reflectTarget, property, value, receiver, previous)
+			) {
+				handleChangeOnTarget(target, property, target[property], previous);
 
 				return true;
 			}
 
-			return false;
+			return !isValid;
 		},
 
 		defineProperty(target, property, descriptor) {
 			if (!cache.isSameDescriptor(descriptor, target, property)) {
-				if (!cache.defineProperty(target, property, descriptor)) {
-					return false;
-				}
+				const previous = target[property];
 
-				handleChangeOnTarget(target, property, undefined, descriptor.value);
+				if (
+					validate(target, property, descriptor.value, previous) &&
+					cache.defineProperty(target, property, descriptor, previous)
+				) {
+					handleChangeOnTarget(target, property, descriptor.value, previous);
+				}
 			}
 
 			return true;
@@ -766,8 +979,11 @@ const onChange$1 = (object, onChange, options = {}) => {
 
 			const previous = Reflect.get(target, property);
 
-			if (cache.deleteProperty(target, property, previous)) {
-				handleChangeOnTarget(target, property, previous);
+			if (
+				validate(target, property, undefined, previous) &&
+				cache.deleteProperty(target, property, previous)
+			) {
+				handleChangeOnTarget(target, property, undefined, previous);
 
 				return true;
 			}
@@ -782,13 +998,17 @@ const onChange$1 = (object, onChange, options = {}) => {
 				return Reflect.apply(target, thisProxyTarget, argumentsList);
 			}
 
-			if (SmartClone.isHandledType(thisProxyTarget)) {
-				const applyPath = path.initial(cache.getPath(target));
+			if (
+				(details === false ||
+					(details !== true && !details.includes(target.name))) &&
+				SmartClone.isHandledType(thisProxyTarget)
+			) {
+				let applyPath = path.initial(cache.getPath(target));
 				const isHandledMethod = SmartClone.isHandledMethod(thisProxyTarget, target.name);
 
 				smartClone.start(thisProxyTarget, applyPath, argumentsList);
 
-				const result = Reflect.apply(
+				let result = Reflect.apply(
 					target,
 					smartClone.preferredThisArg(target, thisArg, thisProxyTarget),
 					isHandledMethod ?
@@ -796,14 +1016,34 @@ const onChange$1 = (object, onChange, options = {}) => {
 						argumentsList
 				);
 
-				const isChanged = smartClone.isChanged(thisProxyTarget, equals, argumentsList);
-				const clone = smartClone.stop();
+				const isChanged = smartClone.isChanged(thisProxyTarget, equals);
+				const previous = smartClone.stop();
+
+				if (SmartClone.isHandledType(result) && isHandledMethod) {
+					if (thisArg instanceof Map && target.name === 'get') {
+						applyPath = path.concat(applyPath, argumentsList[0]);
+					}
+
+					result = cache.getProxy(result, applyPath, handler);
+				}
 
 				if (isChanged) {
-					if (smartClone.isCloning) {
-						handleChange(path.initial(applyPath), path.last(applyPath), clone, thisProxyTarget, target.name);
+					const applyData = {
+						name: target.name,
+						args: argumentsList,
+						result
+					};
+					const changePath = smartClone.isCloning ?
+						path.initial(applyPath) :
+						applyPath;
+					const property = smartClone.isCloning ?
+						path.last(applyPath) :
+						'';
+
+					if (validate(path.get(object, changePath), property, thisProxyTarget, previous, applyData)) {
+						handleChange(changePath, property, thisProxyTarget, previous, applyData);
 					} else {
-						handleChange(applyPath, '', clone, thisProxyTarget, target.name);
+						smartClone.undo(thisProxyTarget);
 					}
 				}
 
@@ -814,9 +1054,7 @@ const onChange$1 = (object, onChange, options = {}) => {
 					return wrapIterator(result, target, thisArg, applyPath, prepareValue);
 				}
 
-				return (SmartClone.isHandledType(result) && isHandledMethod) ?
-					cache.getProxy(result, applyPath, handler, proxyTarget) :
-					result;
+				return result;
 			}
 
 			return Reflect.apply(target, thisArg, argumentsList);
@@ -826,10 +1064,14 @@ const onChange$1 = (object, onChange, options = {}) => {
 	const proxy = cache.getProxy(object, options.pathAsArray ? [] : '', handler);
 	onChange = onChange.bind(proxy);
 
+	if (hasOnValidate) {
+		options.onValidate = options.onValidate.bind(proxy);
+	}
+
 	return proxy;
 };
 
-onChange$1.target = proxy => proxy[TARGET] || proxy;
+onChange$1.target = proxy => (proxy && proxy[TARGET]) || proxy;
 onChange$1.unsubscribe = proxy => proxy[UNSUBSCRIBE] || proxy;
 
 var onChange_1 = onChange$1;
@@ -3098,17 +3340,41 @@ let netAdapter = netAdapter$1;
 let rootMap = new WeakMap();
 let targetKey  = Symbol();
 
-function rdbClient(baseUrl, options = {}) {
+// overrideConsole();
+
+// function overrideConsole() {
+// 	let options = ['log', 'dir', 'time', 'timeEnd'];
+// 	for(let p of options) {
+// 		let original = console[p];
+// 		console[p] = consoleFn.bind(original);
+// 	}
+
+// 	function consoleFn() {
+// 		let [obj, ...args] = arguments;
+// 		if (obj[targetKey]) {
+// 			let inner = onChange.target(obj) ? onChange.target(obj)[targetKey] : obj[targetKey];
+// 			return this.apply(console, [inner].concat(args));
+// 		}
+// 		else
+// 			return this.apply(console, arguments);
+// 	}
+// }
+
+function rdbClient(options = {}) {
+	if (options.transaction)
+		options = {db: options};
 	let beforeResponse = options.beforeResponse;
 	let beforeRequest = options.beforeRequest;
 	let _reactive = options.reactive;
-	function client(baseUrl, _options = {}) {
-		return rdbClient(baseUrl, _options);
+	let baseUrl = options.db;
+	function client(_options = {}) {
+		if (_options.transaction)
+			_options = {db: _options};
+		return rdbClient({...options,..._options});
 	}
 
 	if (options.tables) {
 		for(let name in options.tables) {
-			console.log(name);
 			client[name] = table(options.tables[name]);
 		}
 		client.tables = options.tables;
@@ -3131,6 +3397,9 @@ function rdbClient(baseUrl, options = {}) {
 		or: client.or,
 		and: client.and,
 		not: client.not,
+		toJSON: function() {
+			return;
+		}
 	};
 	client.query = query;
 	client.transaction = transaction;
@@ -3158,7 +3427,7 @@ function rdbClient(baseUrl, options = {}) {
 		if (!db.transaction)
 			throw new Error("Illegal operation");
 		let result;
-		await db.transaction(async() => {
+		await db.transaction(async () => {
 			result = fn(db);
 		});
 		return result;
@@ -3167,7 +3436,7 @@ function rdbClient(baseUrl, options = {}) {
 	function table(url, tableOptions) {
 		if (baseUrl && typeof url === 'string')
 			url = baseUrl + url;
-		else if (baseUrl && baseUrl.transaction) {
+		else if (baseUrl) {
 			tableOptions = tableOptions || {};
 			tableOptions = {db: baseUrl, ...tableOptions};
 		}
@@ -3277,7 +3546,7 @@ function rdbClient(baseUrl, options = {}) {
 
 			};
 			let innerProxy = new Proxy(array, handler);
-			let arrayProxy = onChange(innerProxy, () => { }, { pathAsArray: true, ignoreDetached: true, onValidate });
+			let arrayProxy = onChange(innerProxy, () => { return;}, { pathAsArray: true, ignoreDetached: true, onValidate });
 			rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
 			enabled = true;
 			return arrayProxy;
@@ -3292,6 +3561,7 @@ function rdbClient(baseUrl, options = {}) {
 				}
 				return true;
 			}
+
 		}
 
 		function proxifyRow(row, strategy) {
@@ -3318,7 +3588,7 @@ function rdbClient(baseUrl, options = {}) {
 
 			};
 			let innerProxy = new Proxy(row, handler);
-			let rowProxy = onChange(innerProxy, () => { }, { pathAsArray: true, ignoreDetached: true, onValidate });
+			let rowProxy = onChange(innerProxy, () => { return;}, { pathAsArray: true, ignoreDetached: true, onValidate });
 			rootMap.set(row, { jsonMap: new Map(), strategy });
 			enabled = true;
 			return rowProxy;
@@ -3347,7 +3617,6 @@ function rdbClient(baseUrl, options = {}) {
 			let deletePatch = createPatch(removed, [], meta);
 			let updatePatch = createPatch(changed.map(x => JSON.parse(jsonMap.get(x))), changed, meta);
 			let patch = [...insertPatch, ...updatePatch, ...deletePatch];
-
 			let body = stringify({ patch, options: { strategy, ...options} });
 			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
 			let { updated, inserted } = await adapter.patch(body);
@@ -3370,6 +3639,7 @@ function rdbClient(baseUrl, options = {}) {
 			if (obj) {
 				let context = rootMap.get(obj);
 				if (context.strategy !== undefined) {
+					// eslint-disable-next-line @typescript-eslint/no-unused-vars
 					let {limit, ...strategy} = context.strategy;
 					return strategy;
 				}
