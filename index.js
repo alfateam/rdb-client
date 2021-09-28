@@ -98,10 +98,10 @@ function rdbClient(options = {}) {
 		return result;
 	}
 
-	function table(url, tableOptions) {	
+	function table(url, tableOptions) {
 		if (baseUrl && typeof url === 'string')
 			url = baseUrl + url;
-		else if (baseUrl && baseUrl.transaction) {
+		else if (baseUrl) {
 			tableOptions = tableOptions || {};
 			tableOptions = {db: baseUrl, ...tableOptions};
 		}
