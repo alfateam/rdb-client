@@ -9,5 +9,10 @@ export interface RdbStatic {
     filter: Filter;
 }      
 
-declare const rdbClient: RdbStatic;
-export default rdbClient;
+declare function r(config: Config): RdbClient;
+
+declare module r {
+    var filter: Filter;
+}
+
+export = r;
