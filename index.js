@@ -255,7 +255,7 @@ function rdbClient(options = {}) {
 			};
 			let innerProxy = new Proxy(row, handler);
 			let rowProxy = onChange(innerProxy, () => { return;}, { pathAsArray: true, ignoreDetached: true, onValidate });
-			rootMap.set(row, { jsonMap: new Map(), strategy });
+			rootMap.set(row, { json: stringify(row), strategy });
 			enabled = true;
 			return rowProxy;
 
