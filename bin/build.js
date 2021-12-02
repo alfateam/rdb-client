@@ -9,7 +9,6 @@ let writeFile = util.promisify(fs.writeFile);
 async function run(cwd) {
 	let indexTs = await findIndexTs(cwd);
 	if (!indexTs) {
-		console.log('not found')
 		return;
 	}
 	console.log(`Rdb: found schema ${indexTs}`);
