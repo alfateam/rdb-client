@@ -8,8 +8,10 @@ let writeFile = util.promisify(fs.writeFile);
 
 async function run(cwd) {
 	let indexTs = await findIndexTs(cwd);
-	if (!indexTs)
+	if (!indexTs) {
+		console.log('not found')
 		return;
+	}
 	console.log(`Rdb: found schema ${indexTs}`);
 	let clientDir = path.normalize(path.join(__dirname, '../typings/client'));
 	let nodeModules = findNodeModules({ cwd: indexTs, relative: false })[0];
