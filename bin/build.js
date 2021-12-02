@@ -8,15 +8,18 @@ let writeFile = util.promisify(fs.writeFile);
 
 async function run(cwd) {
 	let indexTs = await findIndexTs(cwd);
-	if (!indexTs) {
-		console.log('not found')
+	let indexJsPath;
+	if (!indexTs)
 		return;
-	}
+	if (indexTs.substring(indexTs.length -2) === 'js')
+		indexJsPath = indexTs;
 	console.log(`Rdb: found schema ${indexTs}`);
 	let clientDir = path.normalize(path.join(__dirname, '../typings/client'));
-	let nodeModules = findNodeModules({ cwd: indexTs, relative: false })[0];
-	let outDir = path.join(nodeModules, '/.rdb-client');
-	let indexJsPath = compile(indexTs, { outDir });
+	if (!indexJsPath) {
+		let nodeModules = findNodeModules({ cwd: indexTs, relative: false })[0];
+		let outDir = path.join(nodeModules, '/.rdb-client');
+		indexJsPath = compile(indexTs, { outDir });
+	}
 	if (!indexJsPath)
 		return;
 	let indexJs = require(indexJsPath);
@@ -45,7 +48,7 @@ async function findIndexTs(cwd) {
 		cwd
 	};
 	return new Promise(function(resolve, reject) {
-		glob("**/rdb/index.ts", options, async function(err, files) {
+		glob("**/rdb/index.?s", options, async function(err, files) {
 			if (err)
 				reject(err);
 			else if (files.length === 0)
