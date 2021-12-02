@@ -9,12 +9,14 @@ let writeFile = util.promisify(fs.writeFile);
 async function run(cwd) {
 	let indexTs = await findIndexTs(cwd);
 	let indexJsPath;
+	let isPureJs = false;
 	if (!indexTs)
 		return;
-	if (indexTs.substring(indexTs.length -2) === 'js')
+	if (indexTs.substring(indexTs.length -2) === 'js') {
 		indexJsPath = indexTs;
+		isPureJs = true;
+	}
 	console.log(`Rdb: found schema ${indexTs}`);
-	let clientDir = path.normalize(path.join(__dirname, '../typings/client'));
 	if (!indexJsPath) {
 		let nodeModules = findNodeModules({ cwd: indexTs, relative: false })[0];
 		let outDir = path.join(nodeModules, '/.rdb-client');
@@ -35,10 +37,11 @@ async function run(cwd) {
 		if (table.ts)
 			defs += table.ts(name);
 	}
-	let indexDts = path.join(clientDir, '/customized.d.ts');
+	let indexDts = path.join(path.dirname(indexTs), isPureJs ? '/index2.d.ts' : '/tables.ts');
 	await writeFile(indexDts, getPrefixTs());
 	fs.appendFileSync(indexDts, defs);
 	fs.appendFileSync(indexDts, getRdbClientTs(indexJs.tables));
+	fs.appendFileSync(indexDts, '}');
 	console.log(`Rdb: created ts typings successfully.`);
 }
 
@@ -63,25 +66,18 @@ async function findIndexTs(cwd) {
 
 function getPrefixTs() {
 	return `
-import {RdbClientBase, RawFilter, Filter, Concurrencies, Config} from '../core';
-export * from 'rdb-client';
+import 'rdb-client';
 
-export interface RdbStatic {
-	(config: Config): RdbClient;
-    filter: Filter;
-}      
+declare module 'rdb-client' {`;
 
-declare const rdbClient: RdbStatic;
-export default rdbClient;`;
 }
 
 function getRdbClientTs(tables) {
 	return `
-export interface RdbClient extends RdbClientBase {
-	(config: Config): RdbClient;
-    ${getTables()}    
-}
-    `;
+	interface RdbClient  {
+		(config: Config): RdbClient;${getTables()}    
+	}
+`;
 
 	function getTables() {
 		let result = ``;
@@ -89,7 +85,7 @@ export interface RdbClient extends RdbClientBase {
 			let Name = name.substring(0, 1).toUpperCase() + name.substring(1);
 			result +=
 				`
-    ${name}: ${Name}Table;`;
+    	${name}: ${Name}Table;`;
 		}
 		return result;
 	}
