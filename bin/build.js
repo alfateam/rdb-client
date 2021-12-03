@@ -5,6 +5,7 @@ let findNodeModules = require('find-node-modules');
 let fs = require('fs');
 let util = require('util');
 let writeFile = util.promisify(fs.writeFile);
+let ts = require('typescript');
 
 async function run(cwd) {
 	let indexTs = await findIndexTs(cwd);
@@ -37,11 +38,15 @@ async function run(cwd) {
 		if (table.ts)
 			defs += table.ts(name);
 	}
+	let src = '';
+	src += getPrefixTs(isPureJs);
+	src += defs;
+	src += getRdbClientTs(indexJs.tables);
+	src += '}';
 	let indexDts = path.join(path.dirname(indexTs), isPureJs ? '/index.d.ts' : '/tables.ts');
-	await writeFile(indexDts, getPrefixTs(isPureJs));
-	fs.appendFileSync(indexDts, defs);
-	fs.appendFileSync(indexDts, getRdbClientTs(indexJs.tables));
-	fs.appendFileSync(indexDts, '}');
+	let sourceFile = ts.createSourceFile(indexDts, src, ts.ScriptTarget.ES2015, true, ts.ScriptKind.TS);
+	const printer = ts.createPrinter();
+	await writeFile(indexDts, printer.printFile(sourceFile));
 	console.log(`Rdb: created ts typings successfully.`);
 }
 
@@ -57,6 +62,18 @@ async function findIndexTs(cwd) {
 			else if (files.length === 0)
 				resolve();
 			else {
+				files.sort((a,b ) => {
+					const aIsTs = a.substr(a.length -2) === 'ts';
+					const bIsTs = b.substr(b.length -2) === 'ts';
+					if (aIsTs && bIsTs)
+						return 0;
+					else if (aIsTs)
+						return -1;
+					else if (bIsTs)
+						return 1;
+					else
+						return 0;
+				});
 				let file = path.join(cwd, '/', files[0]);
 				resolve(file);
 			}
@@ -66,12 +83,13 @@ async function findIndexTs(cwd) {
 
 function getPrefixTs(isPureJs) {
 	if (isPureJs)
-	return `
-	import 'rdb-client';
+		return `
+	import 'rdb-client';	
 	import { Filter, RawFilter, RdbClient, ResponseOptions , Config, CustomerTable} from 'rdb-client';
 
 	declare function r(config: Config): RdbClient;
-	
+
+	// fdf
 	declare namespace r {
 		function beforeRequest(callback: (response: Response, options: ResponseOptions) => Promise<void> | void): void;
 		function beforeResponse(callback: (response: Response, options: ResponseOptions) => Promise<void> | void): void;
@@ -79,7 +97,7 @@ function getPrefixTs(isPureJs) {
 		function and(filter: Filter, ...filters: Filter[]): Filter;
 		function or(filter: Filter, ...filters: Filter[]): Filter;
 		function not(): Filter;
-		function query(filter: RawFilter): Promise<[]>;
+		function query(filter: RawFilter): Promise<any[]>;
 		function query<T>(filter: RawFilter): Promise<T[]>;
 		var filter: Filter;
 		var customer: CustomerTable;    
@@ -115,4 +133,4 @@ function getRdbClientTs(tables) {
 
 module.exports = function(cwd) {
 	run(cwd).then(null, console.log);
-}
+};
