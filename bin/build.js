@@ -84,12 +84,12 @@ async function findIndexTs(cwd) {
 function getPrefixTs(isPureJs) {
 	if (isPureJs)
 		return `
+	/* eslint-disable @typescript-eslint/no-empty-interface */
 	import 'rdb-client';	
 	import { Filter, RawFilter, RdbClient, ResponseOptions , Config, CustomerTable} from 'rdb-client';
 
 	declare function r(config: Config): RdbClient;
-
-	// fdf
+	
 	declare namespace r {
 		function beforeRequest(callback: (response: Response, options: ResponseOptions) => Promise<void> | void): void;
 		function beforeResponse(callback: (response: Response, options: ResponseOptions) => Promise<void> | void): void;
@@ -107,6 +107,7 @@ function getPrefixTs(isPureJs) {
 	declare module 'rdb-client' {
 	`;
 	return `
+/* eslint-disable @typescript-eslint/no-empty-interface */
 import 'rdb-client';
 
 declare module 'rdb-client' {`;
