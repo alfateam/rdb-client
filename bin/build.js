@@ -37,8 +37,8 @@ async function run(cwd) {
 		if (table.ts)
 			defs += table.ts(name);
 	}
-	let indexDts = path.join(path.dirname(indexTs), isPureJs ? '/index2.d.ts' : '/tables.ts');
-	await writeFile(indexDts, getPrefixTs());
+	let indexDts = path.join(path.dirname(indexTs), isPureJs ? '/index.d.ts' : '/tables.ts');
+	await writeFile(indexDts, getPrefixTs(isPureJs));
 	fs.appendFileSync(indexDts, defs);
 	fs.appendFileSync(indexDts, getRdbClientTs(indexJs.tables));
 	fs.appendFileSync(indexDts, '}');
@@ -64,7 +64,30 @@ async function findIndexTs(cwd) {
 	});
 }
 
-function getPrefixTs() {
+function getPrefixTs(isPureJs) {
+	if (isPureJs)
+	return `
+	import 'rdb-client';
+	import { Filter, RawFilter, RdbClient, ResponseOptions , Config, CustomerTable} from 'rdb-client';
+
+	declare function r(config: Config): RdbClient;
+	
+	declare namespace r {
+		function beforeRequest(callback: (response: Response, options: ResponseOptions) => Promise<void> | void): void;
+		function beforeResponse(callback: (response: Response, options: ResponseOptions) => Promise<void> | void): void;
+		function reactive(proxyMethod: (obj: any) => any): void;
+		function and(filter: Filter, ...filters: Filter[]): Filter;
+		function or(filter: Filter, ...filters: Filter[]): Filter;
+		function not(): Filter;
+		function query(filter: RawFilter): Promise<[]>;
+		function query<T>(filter: RawFilter): Promise<T[]>;
+		var filter: Filter;
+		var customer: CustomerTable;    
+	}
+	export = r;
+
+	declare module 'rdb-client' {
+	`;
 	return `
 import 'rdb-client';
 
@@ -74,8 +97,7 @@ declare module 'rdb-client' {`;
 
 function getRdbClientTs(tables) {
 	return `
-	interface RdbClient  {
-		(config: Config): RdbClient;${getTables()}    
+	interface RdbClient  {${getTables()}
 	}
 `;
 
