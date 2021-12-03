@@ -189,7 +189,7 @@ declare namespace r {
         and(filter: Filter, ...filters: Filter[]): Filter;
         or(filter: Filter, ...filters: Filter[]): Filter;
         not(): Filter;
-        query(filter: RawFilter): Promise<[]>;
+        query(filter: RawFilter): Promise<any[]>;
         query<T>(filter: RawFilter): Promise<T[]>;
         filter: Filter;
     
