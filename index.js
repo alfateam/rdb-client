@@ -130,7 +130,7 @@ function rdbClient(options = {}) {
 
 		async function getMany(_, strategy) {
 			strategy = extractStrategy({strategy});
-			let args = Array.prototype.slice.call(arguments);
+			let args = [_, strategy].concat(Array.prototype.slice.call(arguments).slice(2));
 			let rows = await getManyCore.apply(null, args);
 			return proxify(rows, strategy);
 		}
