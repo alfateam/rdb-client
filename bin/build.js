@@ -86,7 +86,7 @@ function getPrefixTs(isPureJs) {
 		return `
 	/* eslint-disable @typescript-eslint/no-empty-interface */
 	import 'rdb-client';	
-	import { Filter, RawFilter, RdbClient, ResponseOptions , Config, CustomerTable} from 'rdb-client';
+	import { Filter, RawFilter, RdbClient, ResponseOptions , Config} from 'rdb-client';
 
 	declare function r(config: Config): RdbClient;
 	
@@ -100,7 +100,6 @@ function getPrefixTs(isPureJs) {
 		function query(filter: RawFilter): Promise<any[]>;
 		function query<T>(filter: RawFilter): Promise<T[]>;
 		var filter: Filter;
-		var customer: CustomerTable;    
 	}
 	export = r;
 
