@@ -1,4 +1,4 @@
-test('updateDate', async (done) => {
+test('updateDate',  () => {
 	let createPatch = require('../createPatch');
 	let a = {id: 1, date: new Date('2020-10-13')};
 	let b = {id: 1, date: new Date('2020-10-12')};
@@ -6,7 +6,6 @@ test('updateDate', async (done) => {
 	let bIso = toIsoString(b.date);
 	let updatePatch = createPatch(a, b);
 	expect(updatePatch).toEqual([{'op': 'replace', 'path': '/date', 'value': bIso, 'oldValue': aIso}]);
-	done();
 });
 
 function toIsoString(date) {

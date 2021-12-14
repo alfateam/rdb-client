@@ -1,28 +1,25 @@
-test('updateArray', async (done) => {
+test('updateArray',  () => {
 	let createPatch = require('../createPatch');
 	let a = {id: 1, date: 'original'};
 	let b = {id: 1, date: 'changed'};
 	let updatePatch = createPatch([a], [b]);
 	expect(updatePatch).toEqual([{'op': 'replace', 'path': '/1/date', 'value': 'changed', 'oldValue': 'original'}]);
-	done();
 });
 
-test('update non-id pk', async (done) => {
+test('update non-id pk', () => {
 	let createPatch = require('../createPatch');
 	let a = {otherPk: 1, date: 'original'};
 	let b = {otherPk: 1, date: 'changed'};
 	let updatePatch = createPatch([a], [b], {keys: [{name: 'otherPk'}]});
 	expect(updatePatch).toEqual([{'op': 'replace', 'path': '/[1]/date', 'value': 'changed', 'oldValue': 'original'}]);
-	done();
 });
 
-test('update nested composite pk', async (done) => {
+test('update nested composite pk', () => {
 	let createPatch = require('../createPatch');
 	let a = {otherPk: 1, date: 'original', lines: [{linePk: 22, otherPk: 1, foo: '_foo'}, {linePk: 23, otherPk: 1, foo: 'original'}]};
 	let b = {otherPk: 1, date: 'original', lines: [{linePk: 22, otherPk: 1, foo: '_foo'}, {linePk: 23, otherPk: 1, foo: 'changed'}]};
 	let updatePatch = createPatch([a], [b], {keys: [{name: 'otherPk'}], relations: {lines: {keys: [{name: 'otherPk'}, {name: 'linePk'}]}}});
 	expect(updatePatch).toEqual([{'op': 'replace', 'path': '/[1]/lines/[1,23]/foo', 'value': 'changed', 'oldValue': 'original'}]);
-	done();
 });
 
 test('clearChanges',  () => {
