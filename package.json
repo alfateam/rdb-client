@@ -2,8 +2,12 @@
   "name": "rdb-client",
   "version": "1.2.3",
   "description": "Rdb in the browser",
-  "main": "index.js",
-  "module": "rdb-client.esm.js",
+  "main": "./index.cjs",
+  "exports": {
+    "import": "./index.mjs",
+    "require": "./index.cjs"
+  },
+  "module": "index.mjs",
   "types": "./typings/index.d.ts",
   "keywords": [
     "rdb",
@@ -34,16 +38,16 @@
   },
   "homepage": "https://github.com/alfateam/rdb-client/blob/master/README.md",
   "dependencies": {
+    "@lroal/on-change": "^4.0.0",
     "@typescript-eslint/eslint-plugin": "^4.29.2",
     "@typescript-eslint/parser": "^4.29.2",
     "eslint": "^7.32.0",
     "file-url": "^4.0.0",
     "find-node-modules": "^2.1.2",
     "isomorphic-fetch": "^3.0.0",
-    "on-change": "^3.0.2",
     "rfc6902": "^3.0.4",
-    "uuid": "^8.3.2",
-    "typescript": "^4.4.2"
+    "typescript": "^4.4.2",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^19.0.0",

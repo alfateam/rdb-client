@@ -1,4 +1,4 @@
-let onChange = require('on-change');
+let onChange = require('@lroal/on-change');
 let createPatch = require('./createPatch');
 let stringify = require('./stringify');
 let netAdapter = require('./netAdapter');

@@ -1,5 +1,5 @@
 test('filter column.eq', () => {
-	let client = require('../index');
+	let client = require('../index.cjs');
 	let table = client.table('order');
 	let filter = table.orderNo.eq(1);
 	let expected = { path: 'orderNo.eq', args: [1] };
@@ -7,7 +7,7 @@ test('filter column.eq', () => {
 });
 
 test('filter nested column.eq', () => {
-	let client = require('../index');
+	let client = require('../index.cjs');
 	let table = client.table('order');
 	let filter = table.customer.customerNo.eq(1);
 	let expected = { path: 'customer.customerNo.eq', args: [1] };
@@ -15,7 +15,7 @@ test('filter nested column.eq', () => {
 });
 
 test('filter column.eq.not', () => {
-	let client = require('../index');
+	let client = require('../index.cjs');
 	let table = client.table('order');
 	let filter = table.orderNo.eq(1).not();
 	let expected = { path: 'not', args: [{ path: 'orderNo.eq', args: [1] }] };
@@ -23,7 +23,7 @@ test('filter column.eq.not', () => {
 });
 
 test('filter column.eq.not.not', () => {
-	let client = require('../index');
+	let client = require('../index.cjs');
 	let table = client.table('order');
 	let filter = table.orderNo.eq(1).not().not();
 	let expected = { path: 'not', args: [{ path: 'not', args: [{ path: 'orderNo.eq', args: [1] }] }] };
@@ -31,7 +31,7 @@ test('filter column.eq.not.not', () => {
 });
 
 test('filter or', () => {
-	let client = require('../index');
+	let client = require('../index.cjs');
 	let table = client.table('order');
 	let filter1 = table.orderNo.eq(1);
 	let filter2 = table.id.eq(2);
@@ -47,7 +47,7 @@ test('filter or', () => {
 });
 
 test('filter basic or', () => {
-	let client = require('../index');
+	let client = require('../index.cjs');
 
 	let table = client.table('order');
 	let filter1 = table.orderNo.eq(1);
@@ -65,7 +65,7 @@ test('filter basic or', () => {
 
 
 test('filter direct or', () => {
-	let client = require('../index');
+	let client = require('../index.cjs');
 
 	let table = client.table('order');
 	let filter1 = table.orderNo.eq(1);
@@ -82,7 +82,7 @@ test('filter direct or', () => {
 });
 
 test('filter basic or and', () => {
-	let client = require('../index');
+	let client = require('../index.cjs');
 
 	let table = client.table('order');
 	let filter1 = table.orderNo.eq(1);
