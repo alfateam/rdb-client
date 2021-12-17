@@ -39,7 +39,7 @@ async function run(cwd) {
 			defs += table.ts(name);
 	}
 	let src = '';
-	src += getPrefixTs(isPureJs);
+	src += getPrefixTs(isPureJs, indexJs.tables);
 	src += defs;
 	src += getRdbClientTs(indexJs.tables);
 	src += '}';
@@ -81,12 +81,12 @@ async function findIndexTs(cwd) {
 	});
 }
 
-function getPrefixTs(isPureJs) {
+function getPrefixTs(isPureJs, tables) {
 	if (isPureJs)
 		return `
 	/* eslint-disable @typescript-eslint/no-empty-interface */
 	import 'rdb-client';	
-	import { Filter, RawFilter, RdbClient, ResponseOptions , Config} from 'rdb-client';
+	import { Filter, RawFilter, RdbClient, ResponseOptions , Config, ${getTableImports()}} from 'rdb-client';
 
 	declare function r(config: Config): RdbClient;
 	
@@ -100,11 +100,32 @@ function getPrefixTs(isPureJs) {
 		function query(filter: RawFilter): Promise<any[]>;
 		function query<T>(filter: RawFilter): Promise<T[]>;
 		var filter: Filter;
+		${getTableVars()}
 	}
 	export = r;
 
 	declare module 'rdb-client' {
 	`;
+
+	function getTableImports() {
+		let result = [];
+		for (let name in tables) {
+			result.push(name.substring(0, 1).toUpperCase() + name.substring(1) + 'Table');
+		}
+		return result.join(', ');
+	}
+
+	function getTableVars() {
+		let result = ``;
+		for (let name in tables) {
+			let Name = name.substring(0, 1).toUpperCase() + name.substring(1);
+			result +=
+				`
+    	var ${name}: ${Name}Table;`;
+		}
+		return result;
+	}
+
 	return `
 /* eslint-disable @typescript-eslint/no-empty-interface */
 import 'rdb-client';
