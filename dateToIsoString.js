@@ -12,6 +12,7 @@ function dateToIsoString(date) {
         'T' + pad(date.getHours()) +
         ':' + pad(date.getMinutes()) +
         ':' + pad(date.getSeconds()) +
+        '.' + pad(date.getMilliseconds()) +
         dif + pad(tzo / 60) +
         ':' + pad(tzo % 60);
 }
