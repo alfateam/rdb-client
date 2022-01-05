@@ -129,17 +129,21 @@ function rdbClient(options = {}) {
 		return _table;
 
 		async function getMany(_, strategy) {
+			let metaPromise = getMeta();
 			strategy = extractStrategy({strategy});
 			let args = [_, strategy].concat(Array.prototype.slice.call(arguments).slice(2));
 			let rows = await getManyCore.apply(null, args);
+			await metaPromise;
 			return proxify(rows, strategy);
 		}
 
 		async function tryGetFirst(filter, strategy) {
+			let metaPromise = getMeta();
 			strategy = extractStrategy({strategy});
 			let _strategy = { ...strategy, ...{ limit: 1 } };
 			let args = [filter, _strategy].concat(Array.prototype.slice.call(arguments).slice(2));
 			let rows = await getManyCore.apply(null, args);
+			await metaPromise;
 			if (rows.length === 0)
 				return;
 			return proxify(rows[0], strategy);
@@ -190,9 +194,11 @@ function rdbClient(options = {}) {
 			let enabled = false;
 			let handler = {
 				get(_target, property) {
-					if (property === 'toJSON')
-						return () => _target;
-					if (property === 'save')
+					if (property === 'toJSON') 
+						return () => {
+							return toJSON(array);
+						};						
+					else if (property === 'save')
 						return saveArray.bind(null, array);
 					else if (property === 'insert')
 						return insertArray.bind(null, array);
@@ -246,6 +252,10 @@ function rdbClient(options = {}) {
 						return clearChangesRow.bind(null, row);
 					else if (property === 'acceptChanges') //remove from jsonMap
 						return acceptChangesRow.bind(null, row);
+					else if (property === 'toJSON') 
+						return () => {
+							return toJSON(row);
+						};						
 					else if (property === targetKey)
 						return row;
 					else
@@ -269,12 +279,65 @@ function rdbClient(options = {}) {
 			}
 		}
 
+		function toJSON(row, _meta = meta) {
+			if (!_meta)
+				return row;				
+			if (Array.isArray(row)) {
+				return row.map(x => toJSON(x, _meta));
+			}
+			let result = {};
+			for(let name in row) {
+				if (name in _meta.relations)
+					result[name] = toJSON(row[name], _meta.relations[name]);
+				else if (name in _meta.columns) {
+					if(_meta.columns[name].serializable)
+					result[name] = row[name];
+				}
+				else
+					result[name] = row[name];
+			}
+			return result;
+		}
+
 		async function getMeta() {
 			if (meta)
 				return meta;
 			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
-			return adapter.get();
+			meta = adapter.get()
+		
+			while(hasUnresolved(meta)) {
+				meta = parseMeta(meta);
+			}
+			return meta;
+			
+			function parseMeta(meta, map = new Map()) {
+				if (typeof meta === 'number') {
+					return map.get(meta) || meta;
+				}
+				map.set(meta.id, meta);
+				for(let p in meta.relations) {
+					meta.relations[p] = parseMeta(meta.relations[p], map);
+				}
+				return meta;
+			}
+
+			function hasUnresolved(meta, set = new WeakSet()) {
+				if (typeof meta === 'number') 
+					return true;
+				else if (set.has(meta))
+					return false;
+				else {
+					set.add(meta);
+					return Object.values(meta.relations).reduce((prev, current) => {
+						return prev || hasUnresolved(current, set);
+					}, false);
+				}									
+			}
+
+
 		}
+
+		
 
 		async function saveArray(array, options) {
 			let { original, jsonMap } = rootMap.get(array);
@@ -469,6 +532,7 @@ function rdbClient(options = {}) {
 			if (!json)
 				return;
 			let meta = await getMeta(url);
+
 			let patch = createPatch([JSON.parse(json)], [row], meta);
 			let body = stringify({ patch, options: { ...options, strategy } });
 
