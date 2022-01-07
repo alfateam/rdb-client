@@ -3193,7 +3193,8 @@ function httpAdapter(url, {beforeRequest : _beforeRequest, beforeResponse: _befo
 	let c = {
 		get,
 		post,
-		patch
+		patch,
+		query
 	};
 	return c;
 
@@ -3261,6 +3262,9 @@ function httpAdapter(url, {beforeRequest : _beforeRequest, beforeResponse: _befo
 		}
 	}
 
+	function query() {
+		throw new Error("Queries are not supported through http");
+	}
 }
 
 function createNetAdapter(url, options = {}) {
@@ -3341,20 +3345,15 @@ function rdbClient(options = {}) {
 		}
 	};
 	client.query = query;
-	client.transaction = transaction;
+	client.transaction = runInTransaction;
 
 	return client;
 
-	function transaction() {
-		//todo
-	}
-
 	async function query() {
-		let args = arguments;
-		return runInTransaction((db) => db.query.apply(null, args));
+		return netAdapter(baseUrl,{tableOptions: {db: baseUrl}} ).query.apply(null, arguments);
 	}
 
-	async function runInTransaction(fn) {
+	async function runInTransaction() {
 		let db = baseUrl;
 		if (typeof db === 'function') {
 			let dbPromise = db();
@@ -3364,12 +3363,8 @@ function rdbClient(options = {}) {
 				db = dbPromise;
 		}
 		if (!db.transaction)
-			throw new Error("Illegal operation");
-		let result;
-		await db.transaction(async () => {
-			result = fn(db);
-		});
-		return result;
+			throw new Error("Transaction not supported through http");
+		return db.transaction.apply(null, arguments);		
 	}
 
 	function table(url, tableOptions) {
@@ -3387,7 +3382,10 @@ function rdbClient(options = {}) {
 			tryGetFirst,
 			tryGetById,
 			getById,
-			proxify
+			proxify,
+			insert,
+			delete: _delete,
+			cascadeDelete
 		};
 
 		let handler = {
@@ -3452,6 +3450,30 @@ function rdbClient(options = {}) {
 			});
 			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
 			return adapter.post(body);
+		}
+
+		async function _delete() {
+			let args = Array.prototype.slice.call(arguments);
+			let body = stringify({
+				path: 'delete',
+				args
+			});
+			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
+			return adapter.post(body);
+		}
+
+		async function cascadeDelete() {
+			let args = Array.prototype.slice.call(arguments);
+			let body = stringify({
+				path: 'cascadeDelete',
+				args
+			});
+			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
+			return adapter.post(body);
+		}
+
+		async function insert(rows, ...options) {			
+			return proxify(rows).insert.apply(null, options);
 		}
 
 		function proxify(itemOrArray, strategy) {

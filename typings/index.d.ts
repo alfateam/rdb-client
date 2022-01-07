@@ -180,6 +180,9 @@ declare namespace r {
         tables?: unknown
       }
     
+      export interface TransactionOptions {
+        schema?: string[] | string;
+      }
     
       export interface RdbClient {
         (config: Config): RdbClient;
@@ -189,10 +192,11 @@ declare namespace r {
         and(filter: Filter, ...filters: Filter[]): Filter;
         or(filter: Filter, ...filters: Filter[]): Filter;
         not(): Filter;
-        query(filter: RawFilter): Promise<any[]>;
-        query<T>(filter: RawFilter): Promise<T[]>;
-        filter: Filter;
-    
+        query(filter: RawFilter | string): Promise<any[]>;
+        query<T>(filter: RawFilter | string): Promise<T[]>;
+        transaction(fn: () => Promise<any>): Promise<void>;
+        transaction(options: TransactionOptions, fn: () => Promise<any>): Promise<void>;
+        filter: Filter;  
       }
     
      

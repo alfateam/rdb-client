@@ -86,7 +86,7 @@ function getPrefixTs(isPureJs, tables) {
 		return `
 	/* eslint-disable @typescript-eslint/no-empty-interface */
 	import 'rdb-client';	
-	import { Filter, RawFilter, RdbClient, ResponseOptions , Config, ${getTableImports()}} from 'rdb-client';
+	import { Filter, RawFilter, RdbClient, ResponseOptions , Config, TransactionOptions, ${getTableImports()}} from 'rdb-client';
 
 	declare function r(config: Config): RdbClient;
 	
@@ -97,8 +97,10 @@ function getPrefixTs(isPureJs, tables) {
 		function and(filter: Filter, ...filters: Filter[]): Filter;
 		function or(filter: Filter, ...filters: Filter[]): Filter;
 		function not(): Filter;
-		function query(filter: RawFilter): Promise<any[]>;
-		function query<T>(filter: RawFilter): Promise<T[]>;
+		function query(filter: RawFilter | string): Promise<any[]>;
+		function query<T>(filter: RawFilter | string): Promise<T[]>;
+		function transaction(fn: () => Promise<any>): Promise<void>;
+		function transaction(options: TransactionOptions, fn: () => Promise<any>): Promise<void>;
 		var filter: Filter;
 		${getTableVars()}
 	}

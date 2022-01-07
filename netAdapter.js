@@ -4,7 +4,8 @@ function httpAdapter(url, {beforeRequest : _beforeRequest, beforeResponse: _befo
 	let c = {
 		get,
 		post,
-		patch
+		patch,
+		query
 	};
 	return c;
 
@@ -72,6 +73,9 @@ function httpAdapter(url, {beforeRequest : _beforeRequest, beforeResponse: _befo
 		}
 	}
 
+	function query() {
+		throw new Error("Queries are not supported through http");
+	}
 }
 
 function createNetAdapter(url, options = {}) {
