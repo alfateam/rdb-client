@@ -86,7 +86,7 @@ function rdbClient(options = {}) {
 		}
 		if (!db.transaction)
 			throw new Error("Transaction not supported through http");
-		return db.transaction.apply(null, arguments);		
+		return db.transaction.apply(null, arguments);
 	}
 
 	function table(url, tableOptions) {
@@ -106,6 +106,7 @@ function rdbClient(options = {}) {
 			getById,
 			proxify,
 			insert,
+			insertAndForget,
 			delete: _delete,
 			cascadeDelete
 		};
@@ -174,6 +175,16 @@ function rdbClient(options = {}) {
 			return adapter.post(body);
 		}
 
+		async function insertAndForget() {
+			let args = Array.prototype.slice.call(arguments);
+			let body = stringify({
+				path: 'insertAndForget',
+				args
+			});
+			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
+			return adapter.post(body);
+		}
+
 		async function _delete() {
 			let args = Array.prototype.slice.call(arguments);
 			let body = stringify({
@@ -194,7 +205,7 @@ function rdbClient(options = {}) {
 			return adapter.post(body);
 		}
 
-		async function insert(rows, ...options) {			
+		async function insert(rows, ...options) {
 			return proxify(rows).insert.apply(null, options);
 		}
 
@@ -212,10 +223,10 @@ function rdbClient(options = {}) {
 			let enabled = false;
 			let handler = {
 				get(_target, property) {
-					if (property === 'toJSON') 
+					if (property === 'toJSON')
 						return () => {
 							return toJSON(array);
-						};						
+						};
 					else if (property === 'save')
 						return saveArray.bind(null, array);
 					else if (property === 'insert')
@@ -270,10 +281,10 @@ function rdbClient(options = {}) {
 						return clearChangesRow.bind(null, row);
 					else if (property === 'acceptChanges') //remove from jsonMap
 						return acceptChangesRow.bind(null, row);
-					else if (property === 'toJSON') 
+					else if (property === 'toJSON')
 						return () => {
 							return toJSON(row);
-						};						
+						};
 					else if (property === targetKey)
 						return row;
 					else
@@ -299,7 +310,7 @@ function rdbClient(options = {}) {
 
 		function toJSON(row, _meta = meta) {
 			if (!_meta)
-				return row;				
+				return row;
 			if (Array.isArray(row)) {
 				return row.map(x => toJSON(x, _meta));
 			}
@@ -309,7 +320,7 @@ function rdbClient(options = {}) {
 					result[name] = toJSON(row[name], _meta.relations[name]);
 				else if (name in _meta.columns) {
 					if(_meta.columns[name].serializable)
-					result[name] = row[name];
+						result[name] = row[name];
 				}
 				else
 					result[name] = row[name];
@@ -321,13 +332,13 @@ function rdbClient(options = {}) {
 			if (meta)
 				return meta;
 			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
-			meta = adapter.get()
-		
+			meta = adapter.get();
+
 			while(hasUnresolved(meta)) {
 				meta = parseMeta(meta);
 			}
 			return meta;
-			
+
 			function parseMeta(meta, map = new Map()) {
 				if (typeof meta === 'number') {
 					return map.get(meta) || meta;
@@ -340,7 +351,7 @@ function rdbClient(options = {}) {
 			}
 
 			function hasUnresolved(meta, set = new WeakSet()) {
-				if (typeof meta === 'number') 
+				if (typeof meta === 'number')
 					return true;
 				else if (set.has(meta))
 					return false;
@@ -349,13 +360,13 @@ function rdbClient(options = {}) {
 					return Object.values(meta.relations).reduce((prev, current) => {
 						return prev || hasUnresolved(current, set);
 					}, false);
-				}									
+				}
 			}
 
 
 		}
 
-		
+
 
 		async function saveArray(array, options) {
 			let { original, jsonMap } = rootMap.get(array);
