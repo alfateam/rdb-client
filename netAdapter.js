@@ -5,9 +5,9 @@ function httpAdapter(url, {beforeRequest : _beforeRequest, beforeResponse: _befo
 		get,
 		post,
 		patch,
-		query
+		query,
+		express
 	};
-	return c;
 
 	async function get() {
 		// eslint-disable-next-line no-undef
@@ -76,10 +76,14 @@ function httpAdapter(url, {beforeRequest : _beforeRequest, beforeResponse: _befo
 	function query() {
 		throw new Error("Queries are not supported through http");
 	}
+
+	function express() {
+		throw new Error("Hosting in express is not supported on the client side");
+	}
 }
 
 function createNetAdapter(url, options = {}) {
-	if (url.hostLocal)
+	if (url && url.hostLocal)
 		return url.hostLocal(options.tableOptions);
 	else
 		return httpAdapter(url, options);

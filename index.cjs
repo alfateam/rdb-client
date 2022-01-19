@@ -100,6 +100,7 @@ function rdbClient(options = {}) {
 		let c = {
 			getManyDto: getMany,
 			getMany,
+			express,
 			getOne: tryGetFirst,
 			tryGetFirst,
 			tryGetById,
@@ -156,6 +157,10 @@ function rdbClient(options = {}) {
 			}
 			let args = [keyFilter].concat(Array.prototype.slice.call(arguments).slice(meta.keys.length));
 			return tryGetFirst.apply(null, args);
+		}
+
+		function express() {
+			return netAdapter(url, {beforeRequest, beforeResponse, tableOptions}).express.apply(null, arguments);
 		}
 
 		async function getById() {
@@ -332,7 +337,7 @@ function rdbClient(options = {}) {
 			if (meta)
 				return meta;
 			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
-			meta = adapter.get();
+			meta = await adapter.get();
 
 			while(hasUnresolved(meta)) {
 				meta = parseMeta(meta);

@@ -28,6 +28,19 @@ declare namespace r {
         SkipOnConflict = 'skipOnConflict',
         Overwrite = 'overwrite'
       }
+
+      export interface ExpressConfig<TStrategy, TConcurrency>  {
+        db?: unknown | string | (() => unknown | string);
+        customFilters?: CustomFilters;
+        baseFilter?: RawFilter | ((request?: Request, response?: Response) => RawFilter | Promise<RawFilter>);
+        strategy? : TStrategy;
+        defaultConcurrency?: Concurrencies;
+        concurrency?: TConcurrency;
+      }
+
+      export interface CustomFilters {
+        [key: string]: (...args: any[]) => RawFilter | CustomFilters
+      }
     
       export interface BooleanColumn extends ColumnBase<boolean> {
       }

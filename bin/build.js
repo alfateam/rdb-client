@@ -85,7 +85,8 @@ function getPrefixTs(isPureJs, tables) {
 	if (isPureJs)
 		return `
 	/* eslint-disable @typescript-eslint/no-empty-interface */
-	import 'rdb-client';	
+	import 'rdb-client';
+	import { RequestHandler} from 'express'; 
 	import { Filter, RawFilter, RdbClient, ResponseOptions , Config, TransactionOptions, ${getTableImports()}} from 'rdb-client';
 
 	declare function r(config: Config): RdbClient;
@@ -131,6 +132,7 @@ function getPrefixTs(isPureJs, tables) {
 	return `
 /* eslint-disable @typescript-eslint/no-empty-interface */
 import 'rdb-client';
+import { RequestHandler } from 'express'; 
 
 declare module 'rdb-client' {`;
 
