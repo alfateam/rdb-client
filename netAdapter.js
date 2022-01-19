@@ -9,6 +9,9 @@ function httpAdapter(url, {beforeRequest : _beforeRequest, beforeResponse: _befo
 		express
 	};
 
+	return c;
+
+
 	async function get() {
 		// eslint-disable-next-line no-undef
 		let headers = new Headers();

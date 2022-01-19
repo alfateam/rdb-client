@@ -68,6 +68,7 @@ function rdbClient(options = {}) {
 	};
 	client.query = query;
 	client.transaction = runInTransaction;
+	client.db = baseUrl;
 
 	return client;
 

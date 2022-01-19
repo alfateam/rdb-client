@@ -2658,10 +2658,10 @@ function iteratorFor(items) {
   return iterator
 }
 
-function Headers(headers) {
+function Headers$1(headers) {
   this.map = {};
 
-  if (headers instanceof Headers) {
+  if (headers instanceof Headers$1) {
     headers.forEach(function(value, name) {
       this.append(name, value);
     }, this);
@@ -2676,31 +2676,31 @@ function Headers(headers) {
   }
 }
 
-Headers.prototype.append = function(name, value) {
+Headers$1.prototype.append = function(name, value) {
   name = normalizeName(name);
   value = normalizeValue(value);
   var oldValue = this.map[name];
   this.map[name] = oldValue ? oldValue + ', ' + value : value;
 };
 
-Headers.prototype['delete'] = function(name) {
+Headers$1.prototype['delete'] = function(name) {
   delete this.map[normalizeName(name)];
 };
 
-Headers.prototype.get = function(name) {
+Headers$1.prototype.get = function(name) {
   name = normalizeName(name);
   return this.has(name) ? this.map[name] : null
 };
 
-Headers.prototype.has = function(name) {
+Headers$1.prototype.has = function(name) {
   return this.map.hasOwnProperty(normalizeName(name))
 };
 
-Headers.prototype.set = function(name, value) {
+Headers$1.prototype.set = function(name, value) {
   this.map[normalizeName(name)] = normalizeValue(value);
 };
 
-Headers.prototype.forEach = function(callback, thisArg) {
+Headers$1.prototype.forEach = function(callback, thisArg) {
   for (var name in this.map) {
     if (this.map.hasOwnProperty(name)) {
       callback.call(thisArg, this.map[name], name, this);
@@ -2708,7 +2708,7 @@ Headers.prototype.forEach = function(callback, thisArg) {
   }
 };
 
-Headers.prototype.keys = function() {
+Headers$1.prototype.keys = function() {
   var items = [];
   this.forEach(function(value, name) {
     items.push(name);
@@ -2716,7 +2716,7 @@ Headers.prototype.keys = function() {
   return iteratorFor(items)
 };
 
-Headers.prototype.values = function() {
+Headers$1.prototype.values = function() {
   var items = [];
   this.forEach(function(value) {
     items.push(value);
@@ -2724,7 +2724,7 @@ Headers.prototype.values = function() {
   return iteratorFor(items)
 };
 
-Headers.prototype.entries = function() {
+Headers$1.prototype.entries = function() {
   var items = [];
   this.forEach(function(value, name) {
     items.push([name, value]);
@@ -2733,7 +2733,7 @@ Headers.prototype.entries = function() {
 };
 
 if (support.iterable) {
-  Headers.prototype[Symbol.iterator] = Headers.prototype.entries;
+  Headers$1.prototype[Symbol.iterator] = Headers$1.prototype.entries;
 }
 
 function consumed(body) {
@@ -2913,22 +2913,22 @@ function normalizeMethod(method) {
   return methods.indexOf(upcased) > -1 ? upcased : method
 }
 
-function Request(input, options) {
-  if (!(this instanceof Request)) {
+function Request$1(input, options) {
+  if (!(this instanceof Request$1)) {
     throw new TypeError('Please use the "new" operator, this DOM object constructor cannot be called as a function.')
   }
 
   options = options || {};
   var body = options.body;
 
-  if (input instanceof Request) {
+  if (input instanceof Request$1) {
     if (input.bodyUsed) {
       throw new TypeError('Already read')
     }
     this.url = input.url;
     this.credentials = input.credentials;
     if (!options.headers) {
-      this.headers = new Headers(input.headers);
+      this.headers = new Headers$1(input.headers);
     }
     this.method = input.method;
     this.mode = input.mode;
@@ -2943,7 +2943,7 @@ function Request(input, options) {
 
   this.credentials = options.credentials || this.credentials || 'same-origin';
   if (options.headers || !this.headers) {
-    this.headers = new Headers(options.headers);
+    this.headers = new Headers$1(options.headers);
   }
   this.method = normalizeMethod(options.method || this.method || 'GET');
   this.mode = options.mode || this.mode || null;
@@ -2971,8 +2971,8 @@ function Request(input, options) {
   }
 }
 
-Request.prototype.clone = function() {
-  return new Request(this, {body: this._bodyInit})
+Request$1.prototype.clone = function() {
+  return new Request$1(this, {body: this._bodyInit})
 };
 
 function decode(body) {
@@ -2992,7 +2992,7 @@ function decode(body) {
 }
 
 function parseHeaders(rawHeaders) {
-  var headers = new Headers();
+  var headers = new Headers$1();
   // Replace instances of \r\n and \n followed by at least one space or horizontal tab with a space
   // https://tools.ietf.org/html/rfc7230#section-3.2
   var preProcessedHeaders = rawHeaders.replace(/\r?\n[\t ]+/g, ' ');
@@ -3015,7 +3015,7 @@ function parseHeaders(rawHeaders) {
   return headers
 }
 
-Body.call(Request.prototype);
+Body.call(Request$1.prototype);
 
 function Response(bodyInit, options) {
   if (!(this instanceof Response)) {
@@ -3029,7 +3029,7 @@ function Response(bodyInit, options) {
   this.status = options.status === undefined ? 200 : options.status;
   this.ok = this.status >= 200 && this.status < 300;
   this.statusText = options.statusText === undefined ? '' : '' + options.statusText;
-  this.headers = new Headers(options.headers);
+  this.headers = new Headers$1(options.headers);
   this.url = options.url || '';
   this._initBody(bodyInit);
 }
@@ -3040,7 +3040,7 @@ Response.prototype.clone = function() {
   return new Response(this._bodyInit, {
     status: this.status,
     statusText: this.statusText,
-    headers: new Headers(this.headers),
+    headers: new Headers$1(this.headers),
     url: this.url
   })
 };
@@ -3075,9 +3075,9 @@ try {
   DOMException.prototype.constructor = DOMException;
 }
 
-function fetch(input, init) {
+function fetch$1(input, init) {
   return new Promise(function(resolve, reject) {
-    var request = new Request(input, init);
+    var request = new Request$1(input, init);
 
     if (request.signal && request.signal.aborted) {
       return reject(new DOMException('Aborted', 'AbortError'))
@@ -3148,7 +3148,7 @@ function fetch(input, init) {
       }
     }
 
-    if (init && typeof init.headers === 'object' && !(init.headers instanceof Headers)) {
+    if (init && typeof init.headers === 'object' && !(init.headers instanceof Headers$1)) {
       Object.getOwnPropertyNames(init.headers).forEach(function(name) {
         xhr.setRequestHeader(name, normalizeValue(init.headers[name]));
       });
@@ -3173,12 +3173,12 @@ function fetch(input, init) {
   })
 }
 
-fetch.polyfill = true;
+fetch$1.polyfill = true;
 
 if (!global$1.fetch) {
-  global$1.fetch = fetch;
-  global$1.Headers = Headers;
-  global$1.Request = Request;
+  global$1.fetch = fetch$1;
+  global$1.Headers = Headers$1;
+  global$1.Request = Request$1;
   global$1.Response = Response;
 }
 
@@ -3190,6 +3190,88 @@ if (!global$1.fetch) {
 self.fetch.bind(self);
 
 function httpAdapter(url, {beforeRequest : _beforeRequest, beforeResponse: _beforeResponse}) {
+	let c = {
+		get,
+		post,
+		patch,
+		query,
+		express
+	};
+
+	return c;
+
+
+	async function get() {
+		// eslint-disable-next-line no-undef
+		let headers = new Headers();
+		headers.append('Content-Type', 'application/json');
+		headers.append('Accept', 'application/json');
+		let request = { url, init: { method: 'GET', headers } };
+		let response = await sendRequest(request);
+		return handleResponse(response);
+	}
+
+	async function patch(body) {
+		// eslint-disable-next-line no-undef
+		var headers = new Headers();
+		headers.append('Content-Type', 'application/json');
+		let request = { url, init: { method: 'PATCH', headers, body } };
+		let response = await sendRequest(request);
+		return handleResponse(response);
+	}
+
+	async function post(body) {
+		// eslint-disable-next-line no-undef
+		var headers = new Headers();
+		headers.append('Content-Type', 'application/json');
+		let response = await sendRequest({ url, init: { method: 'POST', headers, body } });
+		return handleResponse(response);
+	}
+
+	async function sendRequest({ url, init }, { attempts = 0 } = {}) {
+		if (_beforeRequest) {
+			init = await _beforeRequest(init) || init;
+		}
+		// eslint-disable-next-line no-undef
+		let request = new Request(url, init);
+		// eslint-disable-next-line no-undef
+		return beforeResponse(await fetch(request), { url, init, attempts });
+	}
+
+	async function beforeResponse(response, { url, init, attempts }) {
+		if (!_beforeResponse)
+			return response;
+
+		let shouldRetry;
+		await _beforeResponse(response.clone(), { retry, attempts, request: init });
+		if (shouldRetry)
+			return sendRequest({ url, init }, { attempts: ++attempts });
+		return response;
+
+		function retry() {
+			shouldRetry = true;
+		}
+	}
+
+	async function handleResponse(response) {
+		if (response.status >= 200 && response.status < 300) {
+			return response.json();
+		}
+		else {
+			let msg = response.text && await response.text() || `Status ${response.status} from server`;
+			let e = new Error(msg);
+			e.status = response.status;
+			throw e;
+		}
+	}
+
+	function query() {
+		throw new Error("Queries are not supported through http");
+	}
+
+	function express() {
+		throw new Error("Hosting in express is not supported on the client side");
+	}
 }
 
 function createNetAdapter(url, options = {}) {
@@ -3271,6 +3353,7 @@ function rdbClient(options = {}) {
 	};
 	client.query = query;
 	client.transaction = runInTransaction;
+	client.db = baseUrl;
 
 	return client;
 

@@ -6,6 +6,8 @@ let fs = require('fs');
 let util = require('util');
 let writeFile = util.promisify(fs.writeFile);
 let ts = require('typescript');
+require('isomorphic-fetch');
+
 
 async function run(cwd) {
 	let indexTs = await findIndexTs(cwd);
@@ -34,8 +36,12 @@ async function run(cwd) {
 	}
 	let defs = '';
 	for (let name in indexJs.tables) {
+		let db = indexJs.db || '';
 		let table = indexJs.tables[name];
-		if (table.ts)
+		if (typeof table === 'string' && typeof db === 'string') {
+			defs += await download(db + table);
+		}
+		else if (table.ts)
 			defs += table.ts(name);
 	}
 	let src = '';
@@ -154,6 +160,15 @@ function getRdbClientTs(tables) {
 		}
 		return result;
 	}
+}
+
+async function download(url) {
+	let request = new Request(url, { method: 'GET'});
+	let response = await fetch(request);
+
+	if (response.status >= 200 && response.status < 300)
+		return response.text && await response.text();
+	return '';
 }
 
 module.exports = function(cwd) {
