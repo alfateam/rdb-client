@@ -5,26 +5,6 @@ let netAdapter = require('./netAdapter');
 let rootMap = new WeakMap();
 let targetKey  = Symbol();
 
-// overrideConsole();
-
-// function overrideConsole() {
-// 	let options = ['log', 'dir', 'time', 'timeEnd'];
-// 	for(let p of options) {
-// 		let original = console[p];
-// 		console[p] = consoleFn.bind(original);
-// 	}
-
-// 	function consoleFn() {
-// 		let [obj, ...args] = arguments;
-// 		if (obj[targetKey]) {
-// 			let inner = onChange.target(obj) ? onChange.target(obj)[targetKey] : obj[targetKey];
-// 			return this.apply(console, [inner].concat(args));
-// 		}
-// 		else
-// 			return this.apply(console, arguments);
-// 	}
-// }
-
 function rdbClient(options = {}) {
 	if (options.transaction)
 		options = {db: options};
@@ -636,9 +616,27 @@ function difference(setA, setB, jsonMap) {
 	return { added, removed: Array.from(removed), changed };
 }
 
+function tableProxy() {
+	let handler = {
+		get(_target, property,) {
+			return column(property);
+		}
+
+	};
+	return new Proxy({}, handler);
+}
+
+
 function column(path, ...previous) {
 	function c() {
-		let args = previous.concat(Array.prototype.slice.call(arguments));
+		let args = [];
+		for (let i = 0; i < arguments.length; i++) {
+			if (typeof arguments[i] === 'function')
+				args[i] = arguments[i](tableProxy(path.split('.').slice(0,-1).join('.')));
+			else
+				args[i] = arguments[i];
+		}
+		args = previous.concat(Array.prototype.slice.call(args));
 		let result = { path, args };
 		let handler = {
 			get(_target, property) {
@@ -656,8 +654,6 @@ function column(path, ...previous) {
 	let handler = {
 		get(_target, property) {
 			if (property === 'toJSON')
-				return Reflect.get(...arguments);
-			else if (property in c)
 				return Reflect.get(...arguments);
 			else
 				return column(path + '.' + property);
