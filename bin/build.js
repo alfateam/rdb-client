@@ -38,9 +38,8 @@ async function run(cwd) {
 	for (let name in indexJs.tables) {
 		let db = indexJs.db || '';
 		let table = indexJs.tables[name];
-		if (typeof table === 'string' && typeof db === 'string') {
-			defs += await download(db + table);
-		}
+		if (typeof table === 'string' && typeof db === 'string')
+			defs += (await download(db + table)) || (await download(db + table + '.d.ts'));
 		else if (table.ts)
 			defs += table.ts(name);
 	}
