@@ -40,6 +40,10 @@ declare namespace r {
         concurrency?: TConcurrency;
       }
 
+      export interface Express  {
+        dts : import('express').RequestHandler
+      }
+
       export interface CustomFilters {
         [key: string]: (...args: any[]) => RawFilter | CustomFilters
       }
