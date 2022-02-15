@@ -1,5 +1,3 @@
-import express from 'express';
-
 declare function r(config: r.Config): r.RdbClient;
 
 declare namespace r {
@@ -34,7 +32,7 @@ declare namespace r {
       export interface ExpressConfig<TStrategy, TConcurrency>  {
         db?: unknown | string | (() => unknown | string);
         customFilters?: CustomFilters;
-        baseFilter?: RawFilter | ((request?: express.Request, response?: express.Response) => RawFilter | Promise<RawFilter>);
+        baseFilter?: RawFilter | ((request?: import('express').Request, response?: import('express').Response) => RawFilter | Promise<RawFilter>);
         strategy? : TStrategy;
         defaultConcurrency?: Concurrencies;
         concurrency?: TConcurrency;
