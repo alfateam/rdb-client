@@ -3277,6 +3277,10 @@ function httpAdapter(url, {beforeRequest : _beforeRequest, beforeResponse: _befo
 function createNetAdapter(url, options = {}) {
 	if (url && url.hostLocal)
 		return url.hostLocal(options.tableOptions);
+	else if (url &&  url.query)
+		return url;
+	else if (url &&  typeof url === 'function' && url().query)
+		return url();
 	else
 		return httpAdapter(url, options);
 }
