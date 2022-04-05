@@ -1,6 +1,6 @@
 {
   "name": "rdb-client",
-  "version": "1.2.15",
+  "version": "1.2.16",
   "description": "Rdb in the browser",
   "main": "./index.cjs",
   "exports": {
@@ -20,7 +20,8 @@
     "rdb": "bin/rdb.js"
   },
   "scripts": {
-    "build": "rollup -c rollup.config.js",
+    "concat": "node merge.js",
+    "build": "rollup -c rollup.config.js && npm run concat",
     "test": "eslint ./ && jest",
     "coveralls": "jest --coverage && cat ./coverage/lcov.info | coveralls",
     "lint": "eslint ./",
