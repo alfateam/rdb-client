@@ -3484,7 +3484,8 @@ function rdbClient(options = {}) {
 		}
 
 		async function insert(rows, ...options) {
-			return proxify(rows).insert.apply(null, options);
+			let proxy = proxify(rows);
+			return proxy.insert.apply(proxy, options);
 		}
 
 		function proxify(itemOrArray, strategy) {
@@ -3508,7 +3509,7 @@ function rdbClient(options = {}) {
 					else if (property === 'save')
 						return saveArray.bind(null, array);
 					else if (property === 'insert')
-						return insertArray.bind(null, array);
+						return insertArray.bind(null, array, arrayProxy);
 					else if (property === 'delete')
 						return deleteArray.bind(null, array);
 					else if (property === 'refresh')
@@ -3550,7 +3551,7 @@ function rdbClient(options = {}) {
 					if (property === 'save') //call server then acceptChanges
 						return saveRow.bind(null, row);
 					else if (property === 'insert') //call server then remove from jsonMap and add to original
-						return insertRow.bind(null, row);
+						return insertRow.bind(null, row, rowProxy);
 					else if (property === 'delete') //call server then remove from jsonMap and original
 						return deleteRow.bind(null, row);
 					else if (property === 'refresh') //refresh from server then acceptChanges
@@ -3722,7 +3723,7 @@ function rdbClient(options = {}) {
 			rootMap.set(array, { jsonMap: new Map(), original: new Set(array) });
 		}
 
-		async function insertArray(array, options) {
+		async function insertArray(array, proxy, options) {
 			if (array.length === 0)
 				return;
 			let strategy = extractStrategy(options);
@@ -3734,6 +3735,7 @@ function rdbClient(options = {}) {
 			let { inserted } = await adapter.patch(body);
 			copyInto(inserted, array);
 			rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
+			return proxy;
 		}
 
 		async function deleteArray(array, options) {
@@ -3810,7 +3812,7 @@ function rdbClient(options = {}) {
 			rootMap.set(array, { jsonMap: new Map(), original: new Set(array), strategy });
 		}
 
-		async function insertRow(row, options) {
+		async function insertRow(row, proxy, options) {
 			let strategy = extractStrategy(options, row);
 			let meta = await getMeta();
 			let patch = createPatch([], [row], meta);
@@ -3820,6 +3822,7 @@ function rdbClient(options = {}) {
 			let { inserted } = await adapter.patch(body);
 			copyInto(inserted, [row]);
 			rootMap.set(row, { strategy });
+			return proxy;
 		}
 
 		async function deleteRow(row, options) {
