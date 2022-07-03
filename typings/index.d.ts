@@ -1,4 +1,11 @@
+declare function r(config: r.Config): r.Rdb;
+
 declare namespace r {
+
+    export interface Rdb {
+      (config: Config): Rdb;
+    }
+
     var filter: Filter;   
     export interface Config {
         db?: unknown | string | (() => unknown | string);
