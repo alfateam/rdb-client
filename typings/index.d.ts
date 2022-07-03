@@ -1,5 +1,3 @@
-declare function r(config: r.Config): r.RdbClient;
-
 declare namespace r {
     var filter: Filter;   
     export interface Config {
@@ -200,23 +198,7 @@ declare namespace r {
       export interface TransactionOptions {
         schema?: string[] | string;
       }
-    
-      export interface RdbClient {
-        (config: Config): RdbClient;
-        beforeRequest(callback: (response: Response, options: ResponseOptions) => Promise<void> | void): void;
-        beforeResponse(callback: (response: Response, options: ResponseOptions) => Promise<void> | void): void;
-        reactive(proxyMethod: (obj: any) => any): void;
-        and(filter: Filter, ...filters: Filter[]): Filter;
-        or(filter: Filter, ...filters: Filter[]): Filter;
-        not(): Filter;
-        query(filter: RawFilter | string): Promise<any[]>;
-        query<T>(filter: RawFilter | string): Promise<T[]>;
-        transaction(fn: () => Promise<any>): Promise<void>;
-        transaction(options: TransactionOptions, fn: () => Promise<any>): Promise<void>;
-        filter: Filter;  
-      }
-    
-     
+         
 }
 
 export = r;

@@ -19,7 +19,8 @@ const defaultOptions = {
 };
 
 module.exports = function(file, options = {}) {
+	let basename = path.basename(file, '.ts');
 	options = { ...defaultOptions, ...options };
 	if (compile([file], options) === 0)
-		return path.join(options.outDir, '/index.js');
+		return path.join(options.outDir, `/${basename}.js`);
 };

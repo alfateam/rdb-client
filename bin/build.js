@@ -1,3 +1,4 @@
+let url = require('url');
 let compile = require('./compile');
 let glob = require('glob');
 let path = require('path');
@@ -6,70 +7,97 @@ let fs = require('fs');
 let util = require('util');
 let writeFile = util.promisify(fs.writeFile);
 let ts = require('typescript');
+let moduleDefinition = require('module-definition');
 require('isomorphic-fetch');
 
 
 async function run(cwd) {
-	let indexTs = await findIndexTs(cwd);
-	let indexJsPath;
+	for (let schemaTs of await findSchemaJs(cwd)) {
+		try {
+			await runSingle(schemaTs);
+		}
+		catch (e) {
+			//ignore
+		}
+	}
+}
+
+async function runSingle(schemaTs) {
+	let schemaJsPath;
 	let isPureJs = false;
-	if (!indexTs)
+	if (!schemaTs)
 		return;
-	if (indexTs.substring(indexTs.length -2) === 'js') {
-		indexJsPath = indexTs;
+	if (schemaTs.substring(schemaTs.length - 2) === 'js') {
+		schemaJsPath = schemaTs;
 		isPureJs = true;
 	}
-	console.log(`Rdb: found schema ${indexTs}`);
-	if (!indexJsPath) {
-		let nodeModules = findNodeModules({ cwd: indexTs, relative: false })[0];
+	console.log(`Rdb: found schema ${schemaTs}`);
+	if (!schemaJsPath) {
+		let nodeModules = findNodeModules({ cwd: schemaTs, relative: false })[0];
 		let outDir = path.join(nodeModules, '/.rdb-client');
-		indexJsPath = compile(indexTs, { outDir });
+		schemaJsPath = compile(schemaTs, { outDir });
 	}
-	if (!indexJsPath)
-		return;
-	let indexJs = require(indexJsPath);
-	if ('default' in indexJs)
-		indexJs = indexJs.default;
-	if (!indexJs.tables) {
+	let schemaJs;
+	try {
+		schemaJs = isPureJs ? await import(url.pathToFileURL(schemaJsPath)) : require(schemaJsPath);
+	}
+	catch (e) {
+		console.log(e.stack);
+	}
+	if ('default' in schemaJs)
+		schemaJs = schemaJs.default;
+	if (!schemaJs.tables) {
 		console.log(`Rdb: no tables found.`);
 		return;
 	}
 	let defs = '';
-	for (let name in indexJs.tables) {
-		let db = indexJs.db || '';
-		let table = indexJs.tables[name];
+	for (let name in schemaJs.tables) {
+		let db = schemaJs.db || '';
+		let table = schemaJs.tables[name];
 		if (typeof table === 'string' && typeof db === 'string')
 			defs += (await download(db + table)) || (await download(db + table + '.d.ts'));
 		else if (table.ts)
 			defs += table.ts(name);
 	}
 	let src = '';
-	src += getPrefixTs(isPureJs, indexJs.tables);
+	src += getPrefixTs(isPureJs, schemaJs.tables);
 	src += defs;
-	src += getRdbClientTs(indexJs.tables);
+	src += getRdbClientTs(schemaJs.tables);
 	src += '}';
-	let indexDts = path.join(path.dirname(indexTs), isPureJs ? '/index.d.ts' : '/tables.ts');
+	let indexDts = path.join(path.dirname(schemaTs), isPureJs ? '/index.d.ts' : '/index.ts');
 	let sourceFile = ts.createSourceFile(indexDts, src, ts.ScriptTarget.ES2015, true, ts.ScriptKind.TS);
 	const printer = ts.createPrinter();
 	await writeFile(indexDts, printer.printFile(sourceFile));
+	if (isPureJs)
+		await writeIndexJs(schemaJsPath);
 	console.log(`Rdb: created ts typings successfully.`);
+
 }
 
-async function findIndexTs(cwd) {
+async function writeIndexJs(schemaJsPath) {
+	const schema = path.basename(schemaJsPath);
+	const indexJs = path.join(path.dirname(schemaJsPath), '/index' + path.extname(schemaJsPath));
+	if (moduleDefinition.sync(schemaJsPath) === 'commonjs')
+		await writeFile(indexJs, `module.exports = require('./${schema}');`);
+	else
+		await writeFile(indexJs, `export * from './${schema}'`);
+}
+
+async function findSchemaJs(cwd) {
 	let options = {
-		ignore: "**node_modules/**",
+		ignore: ["**/node_modules/**", "**/dist/**", "**/dev/**"],
 		cwd
 	};
-	return new Promise(function(resolve, reject) {
-		glob("**/rdb/index.?s", options, async function(err, files) {
+	return new Promise(function (resolve, reject) {
+		glob("**/*(rdb|db)*/**/schema.*(js|mjs|ts)", options, async function (err, files) {
 			if (err)
 				reject(err);
 			else if (files.length === 0)
-				resolve();
+				resolve([]);
 			else {
-				files.sort((a,b ) => {
-					const aIsTs = a.substr(a.length -2) === 'ts';
-					const bIsTs = b.substr(b.length -2) === 'ts';
+				files.sort((a, b) => {
+					const aIsTs = a.substring(a.length - 2) === 'ts';
+					const bIsTs = b.substring(b.length - 2) === 'ts';
 					if (aIsTs && bIsTs)
 						return 0;
 					else if (aIsTs)
@@ -79,73 +107,37 @@ async function findIndexTs(cwd) {
 					else
 						return 0;
 				});
-				let file = path.join(cwd, '/', files[0]);
-				resolve(file);
+				files = files.map(x => path.join(cwd, '/', x));
+				resolve(files);
 			}
 		});
 	});
 }
 
-function getPrefixTs(isPureJs, tables) {
+function getPrefixTs(isPureJs) {
 	if (isPureJs)
 		return `
 	/* eslint-disable @typescript-eslint/no-empty-interface */
-	import 'rdb-client';
 	import { RequestHandler} from 'express'; 
-	import { Filter, RawFilter, RdbClient, ResponseOptions , Config, TransactionOptions, ${getTableImports()}} from 'rdb-client';
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	import { BooleanColumn, JSONColumn, UUIDColumn, DateColumn, NumberColumn, BinaryColumn, StringColumn, Concurrencies, ExpressConfig, Express, Filter, RawFilter, Config, ResponseOptions, TransactionOptions } from 'rdb-client';
+	declare const client: RdbClient;
+	export default client;
 
-	declare function r(config: Config): RdbClient;
-	
-	declare namespace r {
-		function beforeRequest(callback: (response: Response, options: ResponseOptions) => Promise<void> | void): void;
-		function beforeResponse(callback: (response: Response, options: ResponseOptions) => Promise<void> | void): void;
-		function reactive(proxyMethod: (obj: any) => any): void;
-		function and(filter: Filter, ...filters: Filter[]): Filter;
-		function or(filter: Filter, ...filters: Filter[]): Filter;
-		function not(): Filter;
-		function query(filter: RawFilter | string): Promise<any[]>;
-		function query<T>(filter: RawFilter | string): Promise<T[]>;
-		function transaction(fn: () => Promise<any>): Promise<void>;
-		function transaction(options: TransactionOptions, fn: () => Promise<any>): Promise<void>;
-		var filter: Filter;
-		${getTableVars()}
-	}
-	export = r;
-
-	declare module 'rdb-client' {
 	`;
-
-	function getTableImports() {
-		let result = [];
-		for (let name in tables) {
-			result.push(name.substring(0, 1).toUpperCase() + name.substring(1) + 'Table');
-		}
-		return result.join(', ');
-	}
-
-	function getTableVars() {
-		let result = ``;
-		for (let name in tables) {
-			let Name = name.substring(0, 1).toUpperCase() + name.substring(1);
-			result +=
-				`
-    	var ${name}: ${Name}Table;`;
-		}
-		return result;
-	}
 
 	return `
 /* eslint-disable @typescript-eslint/no-empty-interface */
-import 'rdb-client';
-import { RequestHandler } from 'express'; 
-
-declare module 'rdb-client' {`;
-
+import schema from './schema';
+import { RequestHandler} from 'express'; 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { BooleanColumn, JSONColumn, UUIDColumn, DateColumn, NumberColumn, BinaryColumn, StringColumn, Concurrencies, ExpressConfig, Express, Filter, RawFilter, Config, ResponseOptions, TransactionOptions } from 'rdb-client';
+export default schema as RdbClient;`;
 }
 
 function getRdbClientTs(tables) {
 	return `
-	interface RdbClient  {${getTables()}
+	export interface RdbClient  {${getTables()}
 	}
 `;
 
@@ -157,12 +149,25 @@ function getRdbClientTs(tables) {
 				`
     	${name}: ${Name}Table;`;
 		}
+		result += `
+		(config: Config): RdbClient;
+        beforeRequest(callback: (response: Response, options: ResponseOptions) => Promise<void> | void): void;
+        beforeResponse(callback: (response: Response, options: ResponseOptions) => Promise<void> | void): void;
+        reactive(proxyMethod: (obj: unknown) => unknown): void;
+        and(filter: Filter, ...filters: Filter[]): Filter;
+        or(filter: Filter, ...filters: Filter[]): Filter;
+        not(): Filter;
+        query(filter: RawFilter | string): Promise<unknown[]>;
+        query<T>(filter: RawFilter | string): Promise<T[]>;
+        transaction(fn: () => Promise<unknown>): Promise<void>;
+        transaction(options: TransactionOptions, fn: () => Promise<unknown>): Promise<void>;
+        filter: Filter;`;
 		return result;
 	}
 }
 
 async function download(url) {
-	let request = new Request(url, { method: 'GET'});
+	let request = new Request(url, { method: 'GET' });
 	let response = await fetch(request);
 
 	if (response.status >= 200 && response.status < 300)
@@ -170,6 +175,6 @@ async function download(url) {
 	return '';
 }
 
-module.exports = function(cwd) {
+module.exports = function (cwd) {
 	run(cwd).then(null, console.log);
 };
