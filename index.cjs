@@ -364,6 +364,8 @@ function rdbClient(options = {}) {
 			let deletePatch = createPatch(removed, [], meta);
 			let updatePatch = createPatch(changed.map(x => JSON.parse(jsonMap.get(x))), changed, meta);
 			let patch = [...insertPatch, ...updatePatch, ...deletePatch];
+			if (patch.length === 0)
+				return;
 			let body = stringify({ patch, options: { strategy, ...options} });
 			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
 			let { updated, inserted } = await adapter.patch(body);
@@ -552,6 +554,9 @@ function rdbClient(options = {}) {
 			let meta = await getMeta(url);
 
 			let patch = createPatch([JSON.parse(json)], [row], meta);
+			if (patch.length === 0)
+				return;
+
 			let body = stringify({ patch, options: { ...options, strategy } });
 
 			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
