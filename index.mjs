@@ -3298,7 +3298,7 @@ let rootMap = new WeakMap();
 let targetKey  = Symbol();
 
 function rdbClient(options = {}) {
-	if (options.transaction)
+	if (options.pg)
 		options = {db: options};
 	let beforeResponse = options.beforeResponse;
 	let beforeRequest = options.beforeRequest;
