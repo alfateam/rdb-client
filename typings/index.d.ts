@@ -193,11 +193,6 @@ declare namespace r {
     attempts: number;
   }
 
-  export interface Config {
-    db?: unknown | string | (() => unknown | string);
-    tables?: unknown
-  }
-
   export interface TransactionOptions {
     schema?: string[] | string;
   }
@@ -205,8 +200,13 @@ declare namespace r {
   export type Config = DbConfig | TablesConfig;
 
   export interface DbConfig {
-    db: unknown | string | (() => unknown | string);
+    db: Pool | (() => Pool);
   }
+
+  export interface Pool {
+    end(): Promise<void>;
+    transaction(fn: () => Promise<unknown>): Promise<void>;
+}
 
   export interface TablesConfig {
     tables: unknown
