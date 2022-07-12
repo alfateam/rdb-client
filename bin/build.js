@@ -117,21 +117,21 @@ async function findSchemaJs(cwd) {
 function getPrefixTs(isPureJs) {
 	if (isPureJs)
 		return `
-	/* eslint-disable @typescript-eslint/no-empty-interface */
+	/* tslint:disable */
+	/* eslint-disable */
 	import { RequestHandler} from 'express'; 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	import { BooleanColumn, JSONColumn, UUIDColumn, DateColumn, NumberColumn, BinaryColumn, StringColumn, Concurrencies, ExpressConfig, Express, Filter, RawFilter, Config, ResponseOptions, TransactionOptions } from 'rdb-client';
+	import { BooleanColumn, JSONColumn, UUIDColumn, DateColumn, NumberColumn, BinaryColumn, StringColumn, Concurrencies, Express, Filter, RawFilter, Config, ResponseOptions, TransactionOptions } from 'rdb-client';
 	declare const client: RdbClient;
 	export default client;
 
 	`;
 
 	return `
-/* eslint-disable @typescript-eslint/no-empty-interface */
-import schema from './schema';
+/* tslint:disable */
+/* eslint-disable */
+	import schema from './schema';
 import { RequestHandler} from 'express'; 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { BooleanColumn, JSONColumn, UUIDColumn, DateColumn, NumberColumn, BinaryColumn, StringColumn, Concurrencies, ExpressConfig, Express, Filter, RawFilter, Config, ResponseOptions, TransactionOptions } from 'rdb-client';
+import { BooleanColumn, JSONColumn, UUIDColumn, DateColumn, NumberColumn, BinaryColumn, StringColumn, Concurrencies, Express, Filter, RawFilter, Config, ResponseOptions, TransactionOptions } from 'rdb-client';
 export default schema as RdbClient;`;
 }
 
@@ -159,8 +159,7 @@ function getRdbClientTs(tables) {
         not(): Filter;
         query(filter: RawFilter | string): Promise<unknown[]>;
         query<T>(filter: RawFilter | string): Promise<T[]>;
-        transaction(fn: () => Promise<unknown>): Promise<void>;
-        transaction(options: TransactionOptions, fn: () => Promise<unknown>): Promise<void>;
+		transaction(fn: (transaction: RdbClient) => Promise<unknown>, options?: TransactionOptions): Promise<void>;
         filter: Filter;`;
 		return result;
 	}
