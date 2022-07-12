@@ -10,10 +10,11 @@ function rdbClient(options = {}) {
 		options = {db: options};
 	let beforeResponse = options.beforeResponse;
 	let beforeRequest = options.beforeRequest;
+	let transaction = options.transaction;
 	let _reactive = options.reactive;
 	let baseUrl = options.db;
 	function client(_options = {}) {
-		if (_options.transaction)
+		if (_options.pg)
 			_options = {db: _options};
 		return rdbClient({...options,..._options});
 	}
@@ -56,7 +57,7 @@ function rdbClient(options = {}) {
 		return netAdapter(baseUrl,{tableOptions: {db: baseUrl}} ).query.apply(null, arguments);
 	}
 
-	async function runInTransaction() {
+	async function runInTransaction(fn, _options) {
 		let db = baseUrl;
 		if (typeof db === 'function') {
 			let dbPromise = db();
@@ -65,9 +66,17 @@ function rdbClient(options = {}) {
 			else
 				db = dbPromise;
 		}
-		if (!db.transaction)
+		if (!db.createTransaction)
 			throw new Error("Transaction not supported through http");
-		return db.transaction.apply(null, arguments);
+		const transaction =  db.createTransaction(_options);
+		try {
+			const nextClient = client({transaction});
+			await fn(nextClient);
+			await transaction(db.commit);
+		}
+		catch(e) {
+			await transaction(db.rollback.bind(null, e));
+		}
 	}
 
 	function table(url, tableOptions) {
@@ -75,7 +84,7 @@ function rdbClient(options = {}) {
 			url = baseUrl + url;
 		else if (baseUrl) {
 			tableOptions = tableOptions || {};
-			tableOptions = {db: baseUrl, ...tableOptions};
+			tableOptions = {db: baseUrl, ...tableOptions, transaction};
 		}
 		let meta;
 		let c = {
