@@ -447,9 +447,9 @@ function rdbClient(options = {}) {
 				return;
 			let strategy = extractStrategy(options);
 			let meta = await getMeta();
-			let insertPatch = createPatch([], array, meta);
+			let patch = createPatch([], array, meta);
 
-			let body = stringify({ insertPatch, options: { strategy, ...options} });
+			let body = stringify({ patch, options: { strategy, ...options}  });
 			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
 			let { inserted } = await adapter.patch(body);
 			copyInto(inserted, array);
@@ -535,7 +535,7 @@ function rdbClient(options = {}) {
 			let strategy = extractStrategy(options, row);
 			let meta = await getMeta(url);
 			let patch = createPatch([], [row], meta);
-			let body = stringify({ patch, options });
+			let body = stringify({ patch, options: { strategy, ...options} });
 
 			let adapter = netAdapter(url, {beforeRequest, beforeResponse, tableOptions});
 			let { inserted } = await adapter.patch(body);
