@@ -120,7 +120,7 @@ function getPrefixTs(isPureJs) {
 	/* tslint:disable */
 	/* eslint-disable */
 	import { RequestHandler} from 'express'; 
-	import { BooleanColumn, JSONColumn, UUIDColumn, DateColumn, NumberColumn, BinaryColumn, StringColumn, Concurrencies, Express, Filter, RawFilter, Config, ResponseOptions, TransactionOptions } from 'rdb-client';
+	import { BooleanColumn, JSONColumn, UUIDColumn, DateColumn, NumberColumn, BinaryColumn, StringColumn, Concurrencies, Express, Filter, RawFilter, Config, TablesConfig ResponseOptions, TransactionOptions } from 'rdb-client';
 	declare const client: RdbClient;
 	export default client;
 
@@ -131,7 +131,7 @@ function getPrefixTs(isPureJs) {
 /* eslint-disable */
 	import schema from './schema';
 import { RequestHandler} from 'express'; 
-import { BooleanColumn, JSONColumn, UUIDColumn, DateColumn, NumberColumn, BinaryColumn, StringColumn, Concurrencies, Express, Filter, RawFilter, Config, ResponseOptions, TransactionOptions } from 'rdb-client';
+import { BooleanColumn, JSONColumn, UUIDColumn, DateColumn, NumberColumn, BinaryColumn, StringColumn, Concurrencies, Express, Filter, RawFilter, Config, TablesConfig, ResponseOptions, TransactionOptions } from 'rdb-client';
 export default schema as RdbClient;`;
 }
 
