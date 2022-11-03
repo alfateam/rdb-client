@@ -2,7 +2,7 @@ let url = require('url');
 let compile = require('./compile');
 let glob = require('glob');
 let path = require('path');
-let findNodeModules = require('find-node-modules');
+let findNodeModules = require('findup-sync');
 let fs = require('fs');
 let util = require('util');
 let writeFile = util.promisify(fs.writeFile);
@@ -33,7 +33,7 @@ async function runSingle(schemaTs) {
 	}
 	console.log(`Rdb: found schema ${schemaTs}`);
 	if (!schemaJsPath) {
-		let nodeModules = findNodeModules({ cwd: schemaTs, relative: false })[0];
+		let nodeModules = findNodeModules('node_modules', { cwd: schemaTs});
 		let outDir = path.join(nodeModules, '/.rdb-client');
 		schemaJsPath = compile(schemaTs, { outDir });
 	}
