@@ -1,6 +1,6 @@
 {
   "name": "rdb-client",
-  "version": "1.2.32",
+  "version": "1.2.33",
   "description": "Rdb in the browser",
   "main": "./index.cjs",
   "exports": {
