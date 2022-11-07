@@ -61,9 +61,14 @@ async function runSingle(schemaTs) {
 	}
 	let src = '';
 	src += getPrefixTs(isPureJs, schemaJs.tables);
+	if (isPureJs)
+		src += startNamespace(schemaJs.tables);
 	src += defs;
 	src += getRdbClientTs(schemaJs.tables);
-	src += '}';
+	if (isPureJs)
+		src += '}}'; //with namespace
+	else
+		src += '}';
 	let indexDts = path.join(path.dirname(schemaTs), isPureJs ? '/index.d.ts' : '/index.ts');
 	let sourceFile = ts.createSourceFile(indexDts, src, ts.ScriptTarget.ES2015, true, ts.ScriptKind.TS);
 	const printer = ts.createPrinter();
@@ -121,8 +126,8 @@ function getPrefixTs(isPureJs) {
 	/* eslint-disable */
 	import { RequestHandler} from 'express'; 
 	import { BooleanColumn, JSONColumn, UUIDColumn, DateColumn, NumberColumn, BinaryColumn, StringColumn, Concurrencies, Express, Filter, RawFilter, Config, TablesConfig ResponseOptions, TransactionOptions } from 'rdb-client';
-	declare const client: RdbClient;
-	export default client;
+	export = r;
+	declare function r(config: Config): r.RdbClient;
 
 	`;
 
@@ -133,6 +138,35 @@ function getPrefixTs(isPureJs) {
 import { RequestHandler} from 'express'; 
 import { BooleanColumn, JSONColumn, UUIDColumn, DateColumn, NumberColumn, BinaryColumn, StringColumn, Concurrencies, Express, Filter, RawFilter, Config, TablesConfig, ResponseOptions, TransactionOptions } from 'rdb-client';
 export default schema as RdbClient;`;
+}
+
+function startNamespace(tables) {
+	return `
+	declare namespace r {${getTables()}
+`;
+
+	function getTables() {
+		let result = ``;
+		for (let name in tables) {
+			let Name = name.substring(0, 1).toUpperCase() + name.substring(1);
+			result +=
+				`
+    	const ${name}: ${Name}Table;`;
+		}
+		result += `
+
+        function beforeRequest(callback: (response: Response, options: ResponseOptions) => Promise<void> | void): void;
+        function beforeResponse(callback: (response: Response, options: ResponseOptions) => Promise<void> | void): void;
+        function reactive(proxyMethod: (obj: unknown) => unknown): void;
+        function and(filter: Filter, ...filters: Filter[]): Filter;
+        function or(filter: Filter, ...filters: Filter[]): Filter;
+        function not(): Filter;
+        function query(filter: RawFilter | string): Promise<unknown[]>;
+        function query<T>(filter: RawFilter | string): Promise<T[]>;
+		function transaction(fn: (transaction: RdbClient) => Promise<unknown>, options?: TransactionOptions): Promise<void>;
+        const filter: Filter;`;
+		return result;
+	}
 }
 
 function getRdbClientTs(tables) {
